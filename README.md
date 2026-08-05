@@ -45,7 +45,6 @@ model, a local Whisper server for speech-to-text.
 backend/    NestJS API (auth, events, friends, groups, notifications, assistant)
   prisma/   Schema + migrations
 client/     Flutter app (lib/screens, lib/repositories, lib/data, ...)
-start-*.bat Windows convenience launchers (see below)
 ```
 
 ## Getting started
@@ -84,14 +83,8 @@ dart run build_runner build
 flutter run -d windows      # or -d <android-device-id>
 ```
 
-### Windows convenience scripts
-
-From the repo root, `start-all.bat` starts Ollama, the backend, and the
-client together. `start-backend.bat` / `start-client.bat` / `start-ollama.bat`
-start each piece individually — `start-client.bat` always rebuilds before
-launching so it never runs a stale binary. **Docker Desktop must already be
-running** before starting the backend, since the app connects to PostgreSQL
-eagerly on boot.
+**Docker Desktop must already be running** before starting the backend,
+since the app connects to PostgreSQL eagerly on boot.
 
 ## License
 

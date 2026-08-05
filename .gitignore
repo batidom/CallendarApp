@@ -8,6 +8,13 @@ build/
 backend/uploads/
 whisper/
 
+# Personal local dev convenience — not part of the published project
+Calendar_App_AI_Guidelines.md
+start-all.bat
+start-backend.bat
+start-client.bat
+start-ollama.bat
+
 # Flutter (added in later phases)
 **/.dart_tool/
 **/.flutter-plugins
