@@ -16,7 +16,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { diskStorage } from 'multer';
-import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   ALLOWED_ATTACHMENT_MIME_TYPES,
@@ -44,7 +47,8 @@ export class AttachmentsController {
           mkdirSync(dir, { recursive: true });
           cb(null, dir);
         },
-        filename: (_req, file, cb) => cb(null, `${randomUUID()}${extname(file.originalname)}`),
+        filename: (_req, file, cb) =>
+          cb(null, `${randomUUID()}${extname(file.originalname)}`),
       }),
       limits: { fileSize: MAX_ATTACHMENT_SIZE_BYTES },
       fileFilter: (_req, file, cb) => {
@@ -74,7 +78,11 @@ export class AttachmentsController {
     @Param('attachmentId') attachmentId: string,
     @Res() res: Response,
   ) {
-    const attachment = await this.attachmentsService.getForDownload(user.id, eventId, attachmentId);
+    const attachment = await this.attachmentsService.getForDownload(
+      user.id,
+      eventId,
+      attachmentId,
+    );
     res.download(attachment.storagePath, attachment.filename);
   }
 

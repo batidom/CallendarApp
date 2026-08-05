@@ -25,6 +25,8 @@ export class NotificationsService {
       take: MAX_NOTIFICATIONS,
       include: { actor: { select: PUBLIC_PROFILE_SELECT } },
     });
-    return notifications.map(({ actorId, ...notification }) => notification);
+    return notifications.map(
+      ({ actorId: _actorId, ...notification }) => notification,
+    );
   }
 }

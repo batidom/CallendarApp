@@ -5,6 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 // {from, to, subject, text, html} object into a well-formed RFC822 message
 // (headers, multipart/alternative boundary, encoding) without us having to
 // hand-roll that. See sendVerificationCode() for why this bypasses SMTP.
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- this submodule has no ESM-compatible export
 import MailComposer = require('nodemailer/lib/mail-composer');
 
 // Sends real mail through the sender's own Gmail account via OAuth2, but
@@ -64,23 +65,34 @@ export class MailerService {
     this.logger.log(`Password reset email sent to ${to}`);
   }
 
-  private async send(mail: { to: string; subject: string; text: string; html: string }): Promise<void> {
+  private async send(mail: {
+    to: string;
+    subject: string;
+    text: string;
+    html: string;
+  }): Promise<void> {
     const user = this.config.get<string>('GMAIL_USER');
     if (!user) {
       throw new Error('GMAIL_USER is not set in .env — cannot send emails.');
     }
 
-    const raw = await this.buildRawMessage({ ...mail, from: `"Calendar App" <${user}>` });
+    const raw = await this.buildRawMessage({
+      ...mail,
+      from: `"Calendar App" <${user}>`,
+    });
 
     const { token } = await this.getOAuth2Client().getAccessToken();
-    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ raw }),
       },
-      body: JSON.stringify({ raw }),
-    });
+    );
     if (!response.ok) {
       const body = await response.text().catch(() => '');
       throw new Error(`Gmail API send failed (${response.status}): ${body}`);
@@ -98,13 +110,21 @@ export class MailerService {
     html: string;
   }): Promise<string> {
     return new Promise((resolve, reject) => {
-      new MailComposer(mail).compile().build((error: Error | null, message: Buffer) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(message.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
-      });
+      new MailComposer(mail)
+        .compile()
+        .build((error: Error | null, message: Buffer) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve(
+            message
+              .toString('base64')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_')
+              .replace(/=+$/, ''),
+          );
+        });
     });
   }
 }

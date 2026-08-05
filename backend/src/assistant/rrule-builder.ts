@@ -30,7 +30,9 @@ export function buildRrule(params: {
   if (params.repeatUntil) {
     const d = new Date(`${params.repeatUntil}T00:00:00Z`);
     const pad = (n: number) => n.toString().padStart(2, '0');
-    parts.push(`UNTIL=${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T235959Z`);
+    parts.push(
+      `UNTIL=${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T235959Z`,
+    );
   }
   return parts.join(';');
 }

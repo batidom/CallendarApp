@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FriendsService } from '../friends/friends.service';
 
@@ -23,7 +28,9 @@ export class GroupsService {
   listGroups(userId: string) {
     return this.prisma.group.findMany({
       where: { ownerId: userId },
-      include: { members: { include: { user: { select: PUBLIC_PROFILE_SELECT } } } },
+      include: {
+        members: { include: { user: { select: PUBLIC_PROFILE_SELECT } } },
+      },
       orderBy: [{ usageCount: 'desc' }, { name: 'asc' }],
     });
   }
@@ -67,9 +74,14 @@ export class GroupsService {
     await this.findOwnedOrThrow(userId, groupId);
 
     if (memberUserId === userId) {
-      throw new BadRequestException('You cannot add yourself to your own group');
+      throw new BadRequestException(
+        'You cannot add yourself to your own group',
+      );
     }
-    const areFriends = await this.friendsService.areFriends(userId, memberUserId);
+    const areFriends = await this.friendsService.areFriends(
+      userId,
+      memberUserId,
+    );
     if (!areFriends) {
       throw new BadRequestException('You can only add friends to a group');
     }
@@ -83,11 +95,15 @@ export class GroupsService {
 
   async removeMember(userId: string, groupId: string, memberUserId: string) {
     await this.findOwnedOrThrow(userId, groupId);
-    await this.prisma.groupMember.deleteMany({ where: { groupId, userId: memberUserId } });
+    await this.prisma.groupMember.deleteMany({
+      where: { groupId, userId: memberUserId },
+    });
   }
 
   private async findOwnedOrThrow(userId: string, groupId: string) {
-    const group = await this.prisma.group.findUnique({ where: { id: groupId } });
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+    });
     if (!group) {
       throw new NotFoundException('Group not found');
     }

@@ -58,10 +58,16 @@ export class AssistantService {
     private readonly ollama: OllamaClient,
   ) {}
 
-  async chat(userId: string, dto: AssistantChatDto): Promise<AssistantChatResult> {
+  async chat(
+    userId: string,
+    dto: AssistantChatDto,
+  ): Promise<AssistantChatResult> {
     const language = dto.language === 'pl' ? 'pl' : 'en';
     const messages: OllamaMessage[] = [
-      { role: 'system', content: this.buildSystemPrompt(dto.clientNowLocal, language) },
+      {
+        role: 'system',
+        content: this.buildSystemPrompt(dto.clientNowLocal, language),
+      },
       ...dto.messages,
     ];
     const actionsPerformed: string[] = [];
@@ -102,10 +108,17 @@ export class AssistantService {
           ? this.buildRetryExhaustedMessage(language)
           : this.stripFakeReceiptLines(reply.content);
         if (this.containsUnexpectedScript(reply.content)) {
-          this.logger.warn(`Assistant reply still corrupted after retries for user ${userId}`);
+          this.logger.warn(
+            `Assistant reply still corrupted after retries for user ${userId}`,
+          );
         }
         return {
-          reply: this.appendReceipt(finalReply, [...mutationsByEventId.values()], language, dto.utcOffsetMinutes),
+          reply: this.appendReceipt(
+            finalReply,
+            [...mutationsByEventId.values()],
+            language,
+            dto.utcOffsetMinutes,
+          ),
           pendingDeletes,
           actionsPerformed,
         };
@@ -155,22 +168,36 @@ export class AssistantService {
         if (name === 'delete_event') {
           const pending = await this.resolvePendingDelete(userId, args);
           if ('error' in pending) {
-            messages.push({ role: 'tool', content: JSON.stringify({ error: pending.error }) });
+            messages.push({
+              role: 'tool',
+              content: JSON.stringify({ error: pending.error }),
+            });
             continue;
           }
           pendingDeletes.push(pending);
           messages.push({
             role: 'tool',
-            content: JSON.stringify({ status: 'awaiting_user_confirmation', event: pending }),
+            content: JSON.stringify({
+              status: 'awaiting_user_confirmation',
+              event: pending,
+            }),
           });
           continue;
         }
 
-        const result = await this.executeTool(userId, name, args, dto.utcOffsetMinutes);
+        const result = await this.executeTool(
+          userId,
+          name,
+          args,
+          dto.utcOffsetMinutes,
+        );
         actionsPerformed.push(name);
         messages.push({ role: 'tool', content: JSON.stringify(result) });
 
-        if ((name === 'create_event' || name === 'update_event') && !('error' in (result as object))) {
+        if (
+          (name === 'create_event' || name === 'update_event') &&
+          !('error' in (result as object))
+        ) {
           const event = result as EventToolResult;
           const kind = name === 'create_event' ? 'created' : 'updated';
           // A later redundant update_event on the same event should still
@@ -179,12 +206,17 @@ export class AssistantService {
           // as "created" — that's the more useful thing for the user to
           // see, and it's still accurate.
           const existingKind = mutationsByEventId.get(event.id)?.kind;
-          mutationsByEventId.set(event.id, { kind: existingKind ?? kind, event });
+          mutationsByEventId.set(event.id, {
+            kind: existingKind ?? kind,
+            event,
+          });
         }
       }
     }
 
-    this.logger.warn(`Assistant chat hit the ${MAX_TOOL_ROUNDS}-round tool cap for user ${userId}`);
+    this.logger.warn(
+      `Assistant chat hit the ${MAX_TOOL_ROUNDS}-round tool cap for user ${userId}`,
+    );
     const mutations = [...mutationsByEventId.values()];
     // The model hitting the round cap doesn't mean nothing happened — it
     // often means the opposite (it kept re-verifying or repeating a call
@@ -196,12 +228,17 @@ export class AssistantService {
       mutations.length > 0
         ? language === 'pl'
           ? 'Gotowe — chociaż zajęło mi to kilka prób, poniższa zmiana została zapisana.'
-          : "Done — it took a few tries, but the change below was saved."
+          : 'Done — it took a few tries, but the change below was saved.'
         : language === 'pl'
           ? 'Przepraszam, nie udało mi się tego dokończyć — spróbuj sformułować to inaczej lub podzielić na mniejsze kroki.'
           : "Sorry, I couldn't finish that — could you try rephrasing or breaking it into smaller steps?";
     return {
-      reply: this.appendReceipt(capMessage, mutations, language, dto.utcOffsetMinutes),
+      reply: this.appendReceipt(
+        capMessage,
+        mutations,
+        language,
+        dto.utcOffsetMinutes,
+      ),
       pendingDeletes,
       actionsPerformed,
     };
@@ -217,7 +254,10 @@ export class AssistantService {
   // repaired the sentence — a cleanup pass that itself hallucinates a
   // number is worse than leaving the original ASR noise for the user to
   // see and correct themselves.
-  async cleanTranscript(rawText: string, language: 'en' | 'pl'): Promise<string> {
+  async cleanTranscript(
+    rawText: string,
+    language: 'en' | 'pl',
+  ): Promise<string> {
     const trimmed = rawText.trim();
     if (!trimmed) return trimmed;
 
@@ -243,7 +283,8 @@ export class AssistantService {
         [],
       );
       const cleaned = reply.content?.trim();
-      if (!cleaned || !this.isSafeTranscriptCleanup(trimmed, cleaned)) return trimmed;
+      if (!cleaned || !this.isSafeTranscriptCleanup(trimmed, cleaned))
+        return trimmed;
       return cleaned;
     } catch (error) {
       this.logger.warn(
@@ -276,10 +317,14 @@ export class AssistantService {
   private properNounsPreserved(original: string, cleaned: string): boolean {
     const names = this.extractCapitalizedWords(original);
     if (names.length === 0) return true;
-    const cleanedTokens = this.extractCapitalizedWords(cleaned).map((w) => this.toAsciiLower(w));
+    const cleanedTokens = this.extractCapitalizedWords(cleaned).map((w) =>
+      this.toAsciiLower(w),
+    );
     return names.every((name) => {
       const target = this.toAsciiLower(name);
-      return cleanedTokens.some((token) => this.levenshteinDistance(target, token) <= 1);
+      return cleanedTokens.some(
+        (token) => this.levenshteinDistance(target, token) <= 1,
+      );
     });
   }
 
@@ -296,7 +341,9 @@ export class AssistantService {
   private levenshteinDistance(a: string, b: string): number {
     const rows = a.length + 1;
     const cols = b.length + 1;
-    const dp: number[][] = Array.from({ length: rows }, () => new Array(cols).fill(0));
+    const dp: number[][] = Array.from({ length: rows }, () =>
+      new Array(cols).fill(0),
+    );
     for (let i = 0; i < rows; i++) dp[i][0] = i;
     for (let j = 0; j < cols; j++) dp[0][j] = j;
     for (let i = 1; i < rows; i++) {
@@ -310,8 +357,13 @@ export class AssistantService {
     return dp[a.length][b.length];
   }
 
-  async confirmDelete(userId: string, eventId: string): Promise<{ title: string }> {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+  async confirmDelete(
+    userId: string,
+    eventId: string,
+  ): Promise<{ title: string }> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     await this.eventsService.remove(userId, eventId);
     return { title: event?.title ?? 'Event' };
   }
@@ -323,7 +375,9 @@ export class AssistantService {
   // Cyrillic) mid-sentence. A leaked tool call is always recoverable
   // outright; script corruption just gets regenerated a couple of times
   // before giving up, since there's nothing to parse out of it.
-  private async getCleanReply(messages: OllamaMessage[]): Promise<OllamaMessage> {
+  private async getCleanReply(
+    messages: OllamaMessage[],
+  ): Promise<OllamaMessage> {
     const MAX_REGENERATIONS = 2;
     let reply = await this.ollama.chat(messages, ASSISTANT_TOOLS);
 
@@ -388,7 +442,9 @@ export class AssistantService {
     utcOffsetMinutes: number,
   ): string {
     if (mutations.length === 0) return reply;
-    const lines = mutations.map((m) => this.formatMutationReceipt(m, language, utcOffsetMinutes));
+    const lines = mutations.map((m) =>
+      this.formatMutationReceipt(m, language, utcOffsetMinutes),
+    );
     return [reply, ...lines].filter((s) => s.trim().length > 0).join('\n');
   }
 
@@ -412,7 +468,11 @@ export class AssistantService {
   // (shift the instant by the user's own offset, then read its UTC
   // components back as if they were local) sidesteps needing an IANA
   // timezone database just to display "the user's local time" correctly.
-  private formatEventWhen(event: EventToolResult, language: 'en' | 'pl', utcOffsetMinutes: number): string | null {
+  private formatEventWhen(
+    event: EventToolResult,
+    language: 'en' | 'pl',
+    utcOffsetMinutes: number,
+  ): string | null {
     const locale = language === 'pl' ? 'pl-PL' : 'en-US';
 
     // A timed event's stored "day" is a UTC calendar-day slice, which can
@@ -421,9 +481,20 @@ export class AssistantService {
     // consistent. A loose/backlog item's assignedDate has no time
     // component to shift, so it's used as-is.
     if (event.startTime) {
-      const shifted = new Date(new Date(event.startTime).getTime() + utcOffsetMinutes * 60000);
-      const day = shifted.toLocaleDateString(locale, { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' });
-      const time = shifted.toLocaleTimeString(locale, { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
+      const shifted = new Date(
+        new Date(event.startTime).getTime() + utcOffsetMinutes * 60000,
+      );
+      const day = shifted.toLocaleDateString(locale, {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      const time = shifted.toLocaleTimeString(locale, {
+        timeZone: 'UTC',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
       return `${day}, ${time}`;
     }
 
@@ -436,12 +507,16 @@ export class AssistantService {
     });
   }
 
-  private static readonly TOOL_NAMES = ASSISTANT_TOOLS.map((t) => t.function.name).join('|');
+  private static readonly TOOL_NAMES = ASSISTANT_TOOLS.map(
+    (t) => t.function.name,
+  ).join('|');
   private static readonly LEAKED_TOOL_CALL_PATTERN = new RegExp(
     `"name"\\s*:\\s*"(${AssistantService.TOOL_NAMES})"\\s*,\\s*"arguments"\\s*:\\s*(\\{[^{}]*\\})`,
   );
 
-  private extractLeakedToolCall(content: string): { name: string; arguments: Record<string, unknown> } | null {
+  private extractLeakedToolCall(
+    content: string,
+  ): { name: string; arguments: Record<string, unknown> } | null {
     const match = content.match(AssistantService.LEAKED_TOOL_CALL_PATTERN);
     if (!match) return null;
     try {
@@ -451,7 +526,9 @@ export class AssistantService {
     }
   }
 
-  private parseArgs(raw: Record<string, unknown> | string): Record<string, any> {
+  private parseArgs(
+    raw: Record<string, unknown> | string,
+  ): Record<string, any> {
     if (typeof raw === 'string') {
       try {
         return JSON.parse(raw);
@@ -480,8 +557,12 @@ export class AssistantService {
           return { error: `Unknown tool "${name}"` };
       }
     } catch (error) {
-      this.logger.error(`Tool ${name} failed: ${error instanceof Error ? error.stack : error}`);
-      return { error: error instanceof Error ? error.message : 'Something went wrong' };
+      this.logger.error(
+        `Tool ${name} failed: ${error instanceof Error ? error.stack : error}`,
+      );
+      return {
+        error: error instanceof Error ? error.message : 'Something went wrong',
+      };
     }
   }
 
@@ -491,10 +572,17 @@ export class AssistantService {
     utcOffsetMinutes: number,
   ) {
     const titleFilter = args.titleContains
-      ? { title: { contains: args.titleContains, mode: 'insensitive' as const } }
+      ? {
+          title: { contains: args.titleContains, mode: 'insensitive' as const },
+        }
       : {};
 
-    let events = await this.queryEvents(userId, titleFilter, args.dateFrom, args.dateTo);
+    let events = await this.queryEvents(
+      userId,
+      titleFilter,
+      args.dateFrom,
+      args.dateTo,
+    );
     let dateFilterDropped = false;
 
     // A local LLM doing its own date arithmetic ("a month ago", "next
@@ -503,18 +591,30 @@ export class AssistantService {
     // to searching by title alone (or everything, if there's no title
     // either) before reporting nothing was found.
     if (events.length === 0 && (args.dateFrom || args.dateTo)) {
-      events = await this.queryEvents(userId, titleFilter, undefined, undefined);
+      events = await this.queryEvents(
+        userId,
+        titleFilter,
+        undefined,
+        undefined,
+      );
       dateFilterDropped = true;
     }
 
     const results = events.map((e) => ({
       id: e.id,
       title: e.title,
-      day: e.assignedDate?.toISOString().slice(0, 10) ?? e.startTime?.toISOString().slice(0, 10) ?? null,
+      day:
+        e.assignedDate?.toISOString().slice(0, 10) ??
+        e.startTime?.toISOString().slice(0, 10) ??
+        null,
       startTime: e.startTime?.toISOString() ?? null,
       endTime: e.endTime?.toISOString() ?? null,
-      startLocal: e.startTime ? this.localDateTimeString(e.startTime, utcOffsetMinutes) : null,
-      endLocal: e.endTime ? this.localDateTimeString(e.endTime, utcOffsetMinutes) : null,
+      startLocal: e.startTime
+        ? this.localDateTimeString(e.startTime, utcOffsetMinutes)
+        : null,
+      endLocal: e.endTime
+        ? this.localDateTimeString(e.endTime, utcOffsetMinutes)
+        : null,
       location: e.location,
       isRecurring: !!e.rrule,
     }));
@@ -535,8 +635,12 @@ export class AssistantService {
   ) {
     const where: Record<string, unknown> = { userId, ...titleFilter };
     if (dateFrom || dateTo) {
-      const from = dateFrom ? new Date(`${dateFrom}T00:00:00Z`) : new Date('1970-01-01');
-      const to = dateTo ? new Date(`${dateTo}T23:59:59Z`) : new Date('2100-01-01');
+      const from = dateFrom
+        ? new Date(`${dateFrom}T00:00:00Z`)
+        : new Date('1970-01-01');
+      const to = dateTo
+        ? new Date(`${dateTo}T23:59:59Z`)
+        : new Date('2100-01-01');
       where.OR = [
         { startTime: { gte: from, lte: to } },
         { assignedDate: { gte: from, lte: to } },
@@ -546,7 +650,11 @@ export class AssistantService {
     // Most-recently-created first (rather than by date) so a broadened,
     // unfiltered search still surfaces plausibly-relevant recent events
     // ahead of years-old ones when there are more than fit in one page.
-    return this.prisma.event.findMany({ where, orderBy: { createdAt: 'desc' }, take: 40 });
+    return this.prisma.event.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+    });
   }
 
   private async createEvent(
@@ -555,7 +663,11 @@ export class AssistantService {
     utcOffsetMinutes: number,
   ): Promise<EventToolResult> {
     if (!args.confirmNotDuplicate) {
-      const existing = await this.findPossibleDuplicate(userId, args.title, utcOffsetMinutes);
+      const existing = await this.findPossibleDuplicate(
+        userId,
+        args.title,
+        utcOffsetMinutes,
+      );
       if (existing) {
         const when = this.formatEventWhen(existing, 'en', utcOffsetMinutes);
         // Thrown (not returned) so it goes through executeTool's existing
@@ -578,7 +690,12 @@ export class AssistantService {
     }
     const schedule = this.resolveSchedule(args, utcOffsetMinutes);
     if (schedule.startTime && schedule.endTime && !args.confirmOverlap) {
-      await this.rejectIfOverlapping(userId, schedule.startTime, schedule.endTime, utcOffsetMinutes);
+      await this.rejectIfOverlapping(
+        userId,
+        schedule.startTime,
+        schedule.endTime,
+        utcOffsetMinutes,
+      );
     }
     const event = await this.eventsService.create(userId, {
       title: args.title,
@@ -604,10 +721,17 @@ export class AssistantService {
       // as a raw UUID lookup and throws a raw, unhelpful driver error.
       // Failing fast with a plain-English reason gives the model something
       // it can actually act on (it's already shown find_events first).
-      throw new Error(`"${eventId}" is not a valid event id — call find_events first and use the id it returns.`);
+      throw new Error(
+        `"${eventId}" is not a valid event id — call find_events first and use the id it returns.`,
+      );
     }
-    const hasScheduleChange = fields.day !== undefined || fields.startTime !== undefined;
-    let schedule: { assignedDate?: string; startTime?: string; endTime?: string } = {};
+    const hasScheduleChange =
+      fields.day !== undefined || fields.startTime !== undefined;
+    let schedule: {
+      assignedDate?: string;
+      startTime?: string;
+      endTime?: string;
+    } = {};
 
     if (hasScheduleChange) {
       let day = fields.day;
@@ -619,7 +743,9 @@ export class AssistantService {
         // fall back to; reusing it here silently moved the event to today
         // instead of leaving it on its actual day. Look up the event's
         // current day ourselves so an omitted `day` means "keep it".
-        const current = await this.prisma.event.findUnique({ where: { id: eventId } });
+        const current = await this.prisma.event.findUnique({
+          where: { id: eventId },
+        });
         if (current) {
           day = current.startTime
             ? this.localDayFromInstant(current.startTime, utcOffsetMinutes)
@@ -630,7 +756,13 @@ export class AssistantService {
     }
 
     if (schedule.startTime && schedule.endTime && !fields.confirmOverlap) {
-      await this.rejectIfOverlapping(userId, schedule.startTime, schedule.endTime, utcOffsetMinutes, eventId);
+      await this.rejectIfOverlapping(
+        userId,
+        schedule.startTime,
+        schedule.endTime,
+        utcOffsetMinutes,
+        eventId,
+      );
     }
 
     const event = await this.eventsService.update(userId, eventId, {
@@ -658,11 +790,18 @@ export class AssistantService {
     return {
       id: event.id,
       title: event.title,
-      day: event.assignedDate?.toISOString().slice(0, 10) ?? event.startTime?.toISOString().slice(0, 10) ?? null,
+      day:
+        event.assignedDate?.toISOString().slice(0, 10) ??
+        event.startTime?.toISOString().slice(0, 10) ??
+        null,
       startTime: event.startTime?.toISOString() ?? null,
       endTime: event.endTime?.toISOString() ?? null,
-      startLocal: event.startTime ? this.localDateTimeString(event.startTime, utcOffsetMinutes) : null,
-      endLocal: event.endTime ? this.localDateTimeString(event.endTime, utcOffsetMinutes) : null,
+      startLocal: event.startTime
+        ? this.localDateTimeString(event.startTime, utcOffsetMinutes)
+        : null,
+      endLocal: event.endTime
+        ? this.localDateTimeString(event.endTime, utcOffsetMinutes)
+        : null,
     };
   }
 
@@ -673,7 +812,9 @@ export class AssistantService {
   // read back unambiguously (and, per resolveSchedule/localToUtcIso, feed
   // the HH:mm half of straight back into its own next tool call untouched).
   private localDateTimeString(instant: Date, utcOffsetMinutes: number): string {
-    const iso = new Date(instant.getTime() + utcOffsetMinutes * 60000).toISOString();
+    const iso = new Date(
+      instant.getTime() + utcOffsetMinutes * 60000,
+    ).toISOString();
     return `${iso.slice(0, 10)} ${iso.slice(11, 16)}`;
   }
 
@@ -697,7 +838,11 @@ export class AssistantService {
     return { startTime, endTime };
   }
 
-  private localToUtcIso(day: string, time: string, utcOffsetMinutes: number): string {
+  private localToUtcIso(
+    day: string,
+    time: string,
+    utcOffsetMinutes: number,
+  ): string {
     // The schema asks for a plain "HH:mm", but the model sometimes echoes a
     // full ISO-looking value instead (e.g. copying the shape of a
     // find_events result) — pulling the HH:mm out of wherever it lands in
@@ -708,7 +853,8 @@ export class AssistantService {
     const hour = Number(match[1]);
     const minute = Number(match[2]);
     const [year, month, date] = day.split('-').map(Number);
-    const utcMillis = Date.UTC(year, month - 1, date, hour, minute) - utcOffsetMinutes * 60000;
+    const utcMillis =
+      Date.UTC(year, month - 1, date, hour, minute) - utcOffsetMinutes * 60000;
     return new Date(utcMillis).toISOString();
   }
 
@@ -721,17 +867,48 @@ export class AssistantService {
   // needing an IANA timezone database just to recover which local day a
   // stored UTC instant falls on.
   private localDayFromInstant(instant: Date, utcOffsetMinutes: number): string {
-    return new Date(instant.getTime() + utcOffsetMinutes * 60000).toISOString().slice(0, 10);
+    return new Date(instant.getTime() + utcOffsetMinutes * 60000)
+      .toISOString()
+      .slice(0, 10);
   }
 
   // Polish prepositions/conjunctions plus a handful of English equivalents —
   // words too common to mean anything when comparing titles for similarity.
   private static readonly TITLE_STOPWORDS = new Set([
-    'z', 'i', 'w', 'o', 'u', 'do', 'od', 'na', 'za', 'się', 'ze', 'the', 'a', 'an', 'and', 'with', 'to', 'on', 'at', 'of', 'for', 'in',
+    'z',
+    'i',
+    'w',
+    'o',
+    'u',
+    'do',
+    'od',
+    'na',
+    'za',
+    'się',
+    'ze',
+    'the',
+    'a',
+    'an',
+    'and',
+    'with',
+    'to',
+    'on',
+    'at',
+    'of',
+    'for',
+    'in',
   ]);
 
   private static readonly DIACRITICS: Record<string, string> = {
-    ą: 'a', ć: 'c', ę: 'e', ł: 'l', ń: 'n', ó: 'o', ś: 's', ź: 'z', ż: 'z',
+    ą: 'a',
+    ć: 'c',
+    ę: 'e',
+    ł: 'l',
+    ń: 'n',
+    ó: 'o',
+    ś: 's',
+    ź: 'z',
+    ż: 'z',
   };
 
   // Diacritic-stripped, stopword-filtered significant words — deliberately
@@ -743,7 +920,9 @@ export class AssistantService {
       .toLowerCase()
       .replace(/[ąćęłńóśźż]/g, (c) => AssistantService.DIACRITICS[c] ?? c)
       .replace(/[^a-z0-9\s]/g, ' ');
-    return ascii.split(/\s+/).filter((w) => w.length >= 3 && !AssistantService.TITLE_STOPWORDS.has(w));
+    return ascii
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !AssistantService.TITLE_STOPWORDS.has(w));
   }
 
   // Finds the user's own most-recent-title best match by significant-word
@@ -766,7 +945,8 @@ export class AssistantService {
       take: 100,
     });
 
-    let best: { event: (typeof candidates)[number]; overlap: number } | null = null;
+    let best: { event: (typeof candidates)[number]; overlap: number } | null =
+      null;
     for (const candidate of candidates) {
       const candidateWords = this.normalizeTitleWords(candidate.title);
       if (candidateWords.length === 0) continue;
@@ -807,7 +987,11 @@ export class AssistantService {
     });
     if (!conflict) return;
 
-    const when = this.formatEventWhen(this.toEventToolResult(conflict, utcOffsetMinutes), 'en', utcOffsetMinutes);
+    const when = this.formatEventWhen(
+      this.toEventToolResult(conflict, utcOffsetMinutes),
+      'en',
+      utcOffsetMinutes,
+    );
     throw new Error(
       `That time overlaps with an existing event: "${conflict.title}" (id "${conflict.id}"${when ? `, ${when}` : ''}). ` +
         `Tell the user about the conflict and ask whether to schedule it anyway, pick a different time, or cancel — ` +
@@ -831,20 +1015,32 @@ export class AssistantService {
     // reaching Prisma's findUnique would otherwise throw uncaught and fail
     // the whole request instead of giving the model a recoverable error.
     if (!this.isValidEventId(args.eventId)) {
-      return { error: `"${args.eventId}" is not a valid event id — call find_events first and use the id it returns.` };
+      return {
+        error: `"${args.eventId}" is not a valid event id — call find_events first and use the id it returns.`,
+      };
     }
-    const event = await this.prisma.event.findUnique({ where: { id: args.eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: args.eventId },
+    });
     if (!event || event.userId !== userId) {
-      return { error: `No event with id "${args.eventId}" found — call find_events again to get the right id` };
+      return {
+        error: `No event with id "${args.eventId}" found — call find_events again to get the right id`,
+      };
     }
     return {
       eventId: event.id,
       title: event.title,
-      when: event.startTime?.toISOString() ?? event.assignedDate?.toISOString().slice(0, 10) ?? 'unscheduled',
+      when:
+        event.startTime?.toISOString() ??
+        event.assignedDate?.toISOString().slice(0, 10) ??
+        'unscheduled',
     };
   }
 
-  private buildSystemPrompt(clientNowLocal: string, language: 'en' | 'pl'): string {
+  private buildSystemPrompt(
+    clientNowLocal: string,
+    language: 'en' | 'pl',
+  ): string {
     const now = new Date(clientNowLocal);
     const weekday = Number.isNaN(now.getTime())
       ? ''

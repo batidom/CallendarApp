@@ -9,7 +9,11 @@ import { EventsService } from './events.service';
 
 @Module({
   imports: [GroupsModule],
-  controllers: [EventsController, EventInvitesController, AttachmentsController],
+  controllers: [
+    EventsController,
+    EventInvitesController,
+    AttachmentsController,
+  ],
   providers: [EventsService, EventInvitesService, AttachmentsService],
   exports: [EventsService],
 })

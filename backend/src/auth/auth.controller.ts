@@ -1,5 +1,16 @@
-import { Body, Controller, Delete, Get, Patch, Post, UseGuards } from '@nestjs/common';
-import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
@@ -68,26 +79,38 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('username')
-  updateUsername(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateUsernameDto) {
+  updateUsername(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateUsernameDto,
+  ) {
     return this.authService.updateUsername(user.id, dto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('email')
-  updateEmail(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateEmailDto) {
+  updateEmail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateEmailDto,
+  ) {
     return this.authService.updateEmail(user.id, dto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('password')
-  async changePassword(@CurrentUser() user: AuthenticatedUser, @Body() dto: ChangePasswordDto) {
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
     await this.authService.changePassword(user.id, dto);
     return {};
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('account')
-  async deleteAccount(@CurrentUser() user: AuthenticatedUser, @Body() dto: DeleteAccountDto) {
+  async deleteAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DeleteAccountDto,
+  ) {
     await this.authService.deleteAccount(user.id, dto);
     return {};
   }

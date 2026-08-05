@@ -27,7 +27,10 @@ export class OllamaClient {
     return this.config.get<string>('OLLAMA_MODEL', 'qwen2.5:14b');
   }
 
-  async chat(messages: OllamaMessage[], tools: readonly unknown[]): Promise<OllamaMessage> {
+  async chat(
+    messages: OllamaMessage[],
+    tools: readonly unknown[],
+  ): Promise<OllamaMessage> {
     // Seen in practice: an occasional bare "fetch failed" (a connection
     // reset/refused at the TCP level, not an HTTP error response) when
     // Ollama is briefly busy loading or swapping a model. That used to
@@ -44,7 +47,10 @@ export class OllamaClient {
     }
   }
 
-  private async doChat(messages: OllamaMessage[], tools: readonly unknown[]): Promise<OllamaMessage> {
+  private async doChat(
+    messages: OllamaMessage[],
+    tools: readonly unknown[],
+  ): Promise<OllamaMessage> {
     const response = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

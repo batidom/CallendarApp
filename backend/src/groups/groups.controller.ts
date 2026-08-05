@@ -1,5 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AddGroupMemberDto } from './dto/add-group-member.dto';
 import { CreateGroupDto } from './dto/create-group.dto';

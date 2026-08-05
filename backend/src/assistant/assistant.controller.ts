@@ -8,7 +8,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AssistantService } from './assistant.service';
 import { AssistantChatDto } from './dto/assistant-chat.dto';
@@ -31,7 +34,10 @@ export class AssistantController {
   }
 
   @Post('confirm-delete')
-  confirmDelete(@CurrentUser() user: AuthenticatedUser, @Body() dto: AssistantConfirmDeleteDto) {
+  confirmDelete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AssistantConfirmDeleteDto,
+  ) {
     return this.assistantService.confirmDelete(user.id, dto.eventId);
   }
 
@@ -61,7 +67,10 @@ export class AssistantController {
       file.originalname || 'audio.wav',
       resolvedLanguage,
     );
-    const text = await this.assistantService.cleanTranscript(rawText, resolvedLanguage);
+    const text = await this.assistantService.cleanTranscript(
+      rawText,
+      resolvedLanguage,
+    );
     return { text };
   }
 }

@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { QueryEventsDto } from './dto/query-events.dto';
@@ -19,9 +24,16 @@ export class EventsService {
   // invitee (who can already see this same info via GET /events/:id/invites,
   // see EventInvitesService.assertCanView) can tell at a glance whose event
   // they're looking at, instead of only ever seeing "shared with you".
-  private toEventResponse<T extends { user: { id: string; name: string; surname: string | null; username: string } }>(
-    event: T,
-  ): Omit<T, 'user'> & { owner: T['user'] } {
+  private toEventResponse<
+    T extends {
+      user: {
+        id: string;
+        name: string;
+        surname: string | null;
+        username: string;
+      };
+    },
+  >(event: T): Omit<T, 'user'> & { owner: T['user'] } {
     const { user, ...rest } = event;
     return { ...rest, owner: user };
   }
@@ -56,7 +68,12 @@ export class EventsService {
         OR: [
           { userId, OR: scheduleFilter },
           {
-            invites: { some: { invitedUserId: userId, status: { in: ['accepted', 'pending'] } } },
+            invites: {
+              some: {
+                invitedUserId: userId,
+                status: { in: ['accepted', 'pending'] },
+              },
+            },
             OR: scheduleFilter,
           },
         ],
@@ -68,7 +85,10 @@ export class EventsService {
         // At most one row per (eventId, invitedUserId) — see the unique
         // constraint on EventInvite — so this is really "my own invite to
         // this event, if any".
-        invites: { where: { invitedUserId: userId }, select: { id: true, status: true } },
+        invites: {
+          where: { invitedUserId: userId },
+          select: { id: true, status: true },
+        },
       },
     });
 
@@ -92,7 +112,11 @@ export class EventsService {
     userId: string,
     eventOwnerId: string,
     myInvite: { id: string; status: string } | null,
-  ): { myRole: 'owner' | 'editor' | 'invited'; inviteId: string | null; inviteStatus: string | null } {
+  ): {
+    myRole: 'owner' | 'editor' | 'invited';
+    inviteId: string | null;
+    inviteStatus: string | null;
+  } {
     if (eventOwnerId === userId) {
       return { myRole: 'owner', inviteId: null, inviteStatus: null };
     }
@@ -140,16 +164,28 @@ export class EventsService {
         isAllDay: dto.isAllDay ?? false,
         rrule: dto.rrule,
         recurrenceOverrideOf: dto.recurrenceOverrideOf,
-        originalOccurrenceStart: dto.originalOccurrenceStart ? new Date(dto.originalOccurrenceStart) : undefined,
+        originalOccurrenceStart: dto.originalOccurrenceStart
+          ? new Date(dto.originalOccurrenceStart)
+          : undefined,
         excludedOccurrences: dto.excludedOccurrences,
         reminders: dto.reminders
-          ? { create: dto.reminders.map((minutesBefore) => ({ minutesBefore, type: 'in_app' })) }
+          ? {
+              create: dto.reminders.map((minutesBefore) => ({
+                minutesBefore,
+                type: 'in_app',
+              })),
+            }
           : undefined,
       },
       include: { reminders: true, user: { select: PUBLIC_PROFILE_SELECT } },
     });
     // The creator is always the owner.
-    return { ...this.toEventResponse(event), myRole: 'owner' as const, inviteId: null, inviteStatus: null };
+    return {
+      ...this.toEventResponse(event),
+      myRole: 'owner' as const,
+      inviteId: null,
+      inviteStatus: null,
+    };
   }
 
   async update(userId: string, id: string, dto: UpdateEventDto) {
@@ -157,23 +193,37 @@ export class EventsService {
     const isOwner = event.userId === userId;
 
     const nextAssignedDate =
-      dto.assignedDate !== undefined ? this.parseNullableDate(dto.assignedDate) : event.assignedDate;
+      dto.assignedDate !== undefined
+        ? this.parseNullableDate(dto.assignedDate)
+        : event.assignedDate;
     const nextStartTime =
-      dto.startTime !== undefined ? this.parseNullableDate(dto.startTime) : event.startTime;
-    const nextEndTime = dto.endTime !== undefined ? this.parseNullableDate(dto.endTime) : event.endTime;
-    const nextIsAllDay = dto.isAllDay !== undefined ? dto.isAllDay : event.isAllDay;
+      dto.startTime !== undefined
+        ? this.parseNullableDate(dto.startTime)
+        : event.startTime;
+    const nextEndTime =
+      dto.endTime !== undefined
+        ? this.parseNullableDate(dto.endTime)
+        : event.endTime;
+    const nextIsAllDay =
+      dto.isAllDay !== undefined ? dto.isAllDay : event.isAllDay;
 
     const scheduleChanged =
       !this.dateEquals(nextAssignedDate, event.assignedDate) ||
       !this.dateEquals(nextStartTime, event.startTime) ||
       !this.dateEquals(nextEndTime, event.endTime) ||
       nextIsAllDay !== event.isAllDay;
-    const locationChanged = dto.location !== undefined && dto.location !== event.location;
-    const descriptionChanged = dto.description !== undefined && dto.description !== event.description;
+    const locationChanged =
+      dto.location !== undefined && dto.location !== event.location;
+    const descriptionChanged =
+      dto.description !== undefined && dto.description !== event.description;
 
     const hasTimeAfterUpdate = !!nextStartTime;
     const rruleAfterUpdate = dto.rrule !== undefined ? dto.rrule : event.rrule;
-    this.assertScheduleConsistent(hasTimeAfterUpdate, rruleAfterUpdate ?? undefined, dto.reminders);
+    this.assertScheduleConsistent(
+      hasTimeAfterUpdate,
+      rruleAfterUpdate ?? undefined,
+      dto.reminders,
+    );
 
     // Reminders are always replaced wholesale rather than diffed, matching how
     // the client always sends its full desired set (same approach as rrule).
@@ -196,7 +246,12 @@ export class EventsService {
           excludedOccurrences: dto.excludedOccurrences,
           backlogOrder: dto.backlogOrder,
           reminders: dto.reminders
-            ? { create: dto.reminders.map((minutesBefore) => ({ minutesBefore, type: 'in_app' })) }
+            ? {
+                create: dto.reminders.map((minutesBefore) => ({
+                  minutesBefore,
+                  type: 'in_app',
+                })),
+              }
             : undefined,
         },
         include: { reminders: true, user: { select: PUBLIC_PROFILE_SELECT } },
@@ -216,15 +271,35 @@ export class EventsService {
         this.timeKey(event.startTime) !== this.timeKey(nextStartTime);
 
       await this.notifyGroupOfChange(userId, event, [
-        ...(dateChanged ? [{ type: 'date_changed', oldValue: oldMoment, newValue: newMoment }] : []),
+        ...(dateChanged
+          ? [{ type: 'date_changed', oldValue: oldMoment, newValue: newMoment }]
+          : []),
         ...(timeChanged
-          ? [{ type: 'time_changed', oldValue: event.startTime, newValue: nextStartTime ?? null }]
+          ? [
+              {
+                type: 'time_changed',
+                oldValue: event.startTime,
+                newValue: nextStartTime ?? null,
+              },
+            ]
           : []),
         ...(locationChanged
-          ? [{ type: 'location_changed', oldValue: event.location, newValue: dto.location ?? null }]
+          ? [
+              {
+                type: 'location_changed',
+                oldValue: event.location,
+                newValue: dto.location ?? null,
+              },
+            ]
           : []),
         ...(descriptionChanged
-          ? [{ type: 'description_changed', oldValue: event.description, newValue: dto.description ?? null }]
+          ? [
+              {
+                type: 'description_changed',
+                oldValue: event.description,
+                newValue: dto.description ?? null,
+              },
+            ]
           : []),
       ]);
     }
@@ -258,7 +333,11 @@ export class EventsService {
   private async notifyGroupOfChange(
     actorId: string,
     event: { id: string; userId: string; title: string },
-    changes: { type: string; oldValue: Date | string | null; newValue: Date | string | null }[],
+    changes: {
+      type: string;
+      oldValue: Date | string | null;
+      newValue: Date | string | null;
+    }[],
   ): Promise<void> {
     if (changes.length === 0) return;
 
@@ -266,12 +345,19 @@ export class EventsService {
       where: { eventId: event.id, status: 'accepted' },
       select: { invitedUserId: true },
     });
-    const recipientIds = new Set([event.userId, ...accepted.map((i) => i.invitedUserId)]);
+    const recipientIds = new Set([
+      event.userId,
+      ...accepted.map((i) => i.invitedUserId),
+    ]);
     recipientIds.delete(actorId);
     if (recipientIds.size === 0) return;
 
     const toValueString = (value: Date | string | null) =>
-      value === null ? null : value instanceof Date ? value.toISOString() : value;
+      value === null
+        ? null
+        : value instanceof Date
+          ? value.toISOString()
+          : value;
 
     const rows = Array.from(recipientIds).flatMap((userId) =>
       changes.map((change) => ({
@@ -294,9 +380,15 @@ export class EventsService {
 
   // Repeat and reminders are anchored to a specific time, so neither makes
   // sense on a backlog idea or a day-only loose task.
-  private assertScheduleConsistent(hasTime: boolean, rrule?: string, reminders?: number[]) {
+  private assertScheduleConsistent(
+    hasTime: boolean,
+    rrule?: string,
+    reminders?: number[],
+  ) {
     if (!hasTime && (rrule || (reminders && reminders.length > 0))) {
-      throw new BadRequestException('Repeat and reminders require a specific start time');
+      throw new BadRequestException(
+        'Repeat and reminders require a specific start time',
+      );
     }
   }
 
@@ -307,7 +399,10 @@ export class EventsService {
     return value === null ? null : new Date(value);
   }
 
-  private dateEquals(a: Date | null | undefined, b: Date | null | undefined): boolean {
+  private dateEquals(
+    a: Date | null | undefined,
+    b: Date | null | undefined,
+  ): boolean {
     return (a?.getTime() ?? null) === (b?.getTime() ?? null);
   }
 

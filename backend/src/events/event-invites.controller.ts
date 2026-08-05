@@ -1,5 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EventInvitesService } from './event-invites.service';
 import { InviteToEventDto } from './dto/invite-to-event.dto';

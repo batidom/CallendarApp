@@ -15,13 +15,20 @@ export class WhisperClient {
     return this.config.get<string>('WHISPER_URL', 'http://127.0.0.1:8081');
   }
 
-  async transcribe(audio: Buffer, filename: string, language: string): Promise<string> {
+  async transcribe(
+    audio: Buffer,
+    filename: string,
+    language: string,
+  ): Promise<string> {
     const form = new FormData();
     form.append('file', new Blob([new Uint8Array(audio)]), filename);
     form.append('response_format', 'json');
     form.append('language', language);
 
-    const response = await fetch(`${this.baseUrl}/inference`, { method: 'POST', body: form });
+    const response = await fetch(`${this.baseUrl}/inference`, {
+      method: 'POST',
+      body: form,
+    });
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');

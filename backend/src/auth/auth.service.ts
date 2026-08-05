@@ -40,7 +40,9 @@ export class AuthService {
   // login()) until the emailed code is redeemed via verifyEmail(), so there's
   // nothing to log the caller into yet.
   async register(dto: RegisterDto): Promise<{ email: string }> {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existing) {
       throw new ConflictException('Email is already registered');
     }
@@ -69,12 +71,17 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -94,7 +101,9 @@ export class AuthService {
   // would have) since redeeming the code IS the missing piece of proving
   // they own the address.
   async verifyEmail(dto: VerifyEmailDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid code');
     }
@@ -106,7 +115,9 @@ export class AuthService {
       where: { userId: user.id },
     });
     if (!pending || pending.expiresAt.getTime() <= Date.now()) {
-      throw new UnauthorizedException('Code is invalid or expired — request a new one');
+      throw new UnauthorizedException(
+        'Code is invalid or expired — request a new one',
+      );
     }
     if (pending.attempts >= MAX_VERIFICATION_ATTEMPTS) {
       throw new UnauthorizedException('Too many attempts — request a new code');
@@ -122,15 +133,22 @@ export class AuthService {
     }
 
     const [verifiedUser] = await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } }),
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true },
+      }),
       this.prisma.emailVerificationCode.delete({ where: { userId: user.id } }),
     ]);
 
     return this.buildAuthResponse(verifiedUser);
   }
 
-  async resendVerification(dto: ResendVerificationDto): Promise<{ email: string }> {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+  async resendVerification(
+    dto: ResendVerificationDto,
+  ): Promise<{ email: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     // Same response whether or not the account exists / is already verified,
     // so this endpoint can't be used to probe which emails are registered.
     if (!user || user.emailVerified) {
@@ -154,9 +172,14 @@ export class AuthService {
     return { email: user.email };
   }
 
-  private async issueVerificationCode(userId: string, email: string): Promise<void> {
+  private async issueVerificationCode(
+    userId: string,
+    email: string,
+  ): Promise<void> {
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MINUTES * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + VERIFICATION_CODE_TTL_MINUTES * 60 * 1000,
+    );
     await this.prisma.emailVerificationCode.upsert({
       where: { userId },
       create: { userId, codeHash: this.hashToken(code), expiresAt },
@@ -166,7 +189,9 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ email: string }> {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     // Same response whether or not the account exists, so this endpoint
     // can't be used to probe which emails are registered.
     if (!user) {
@@ -187,7 +212,9 @@ export class AuthService {
     }
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MINUTES * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + VERIFICATION_CODE_TTL_MINUTES * 60 * 1000,
+    );
     await this.prisma.passwordResetCode.upsert({
       where: { userId: user.id },
       create: { userId: user.id, codeHash: this.hashToken(code), expiresAt },
@@ -204,7 +231,9 @@ export class AuthService {
   // Every existing refresh token is revoked too: if the old password had
   // leaked, a session minted with it shouldn't survive the reset.
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid code');
     }
@@ -213,7 +242,9 @@ export class AuthService {
       where: { userId: user.id },
     });
     if (!pending || pending.expiresAt.getTime() <= Date.now()) {
-      throw new UnauthorizedException('Code is invalid or expired — request a new one');
+      throw new UnauthorizedException(
+        'Code is invalid or expired — request a new one',
+      );
     }
     if (pending.attempts >= MAX_VERIFICATION_ATTEMPTS) {
       throw new UnauthorizedException('Too many attempts — request a new code');
@@ -266,13 +297,18 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
       throw new UnauthorizedException('Incorrect password');
     }
 
     if (dto.newUsername !== user.username) {
-      const taken = await this.prisma.user.findUnique({ where: { username: dto.newUsername } });
+      const taken = await this.prisma.user.findUnique({
+        where: { username: dto.newUsername },
+      });
       if (taken) {
         throw new ConflictException('Username is already taken');
       }
@@ -299,7 +335,10 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
       throw new UnauthorizedException('Incorrect password');
     }
@@ -307,7 +346,9 @@ export class AuthService {
       throw new ConflictException('That is already your email address');
     }
 
-    const taken = await this.prisma.user.findUnique({ where: { email: dto.newEmail } });
+    const taken = await this.prisma.user.findUnique({
+      where: { email: dto.newEmail },
+    });
     if (taken) {
       throw new ConflictException('Email is already registered');
     }
@@ -330,14 +371,20 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const passwordMatches = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
       throw new UnauthorizedException('Incorrect current password');
     }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash },
+      }),
       this.prisma.refreshToken.deleteMany({ where: { userId } }),
     ]);
   }
@@ -364,7 +411,10 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
       throw new UnauthorizedException('Incorrect password');
     }
@@ -389,7 +439,9 @@ export class AuthService {
       // its members' rows, it doesn't erase any of THEIR data.
       this.prisma.group.deleteMany({ where: { ownerId: userId } }),
       this.prisma.groupMember.deleteMany({ where: { userId } }),
-      this.prisma.event.deleteMany({ where: { id: { in: soleEvents.map((e) => e.id) } } }),
+      this.prisma.event.deleteMany({
+        where: { id: { in: soleEvents.map((e) => e.id) } },
+      }),
       this.prisma.user.update({
         where: { id: userId },
         data: {
@@ -422,7 +474,10 @@ export class AuthService {
     });
 
     if (!stored || stored.expiresAt.getTime() <= Date.now()) {
-      if (stored) await this.prisma.refreshToken.delete({ where: { id: stored.id } }).catch(() => undefined);
+      if (stored)
+        await this.prisma.refreshToken
+          .delete({ where: { id: stored.id } })
+          .catch(() => undefined);
       throw new UnauthorizedException('Refresh token is invalid or expired');
     }
 
@@ -448,7 +503,10 @@ export class AuthService {
     username: string;
     timezone: string | null;
   }) {
-    const accessToken = this.jwtService.sign({ sub: user.id, email: user.email });
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+    });
     const refreshToken = await this.issueRefreshToken(user.id);
     return {
       accessToken,
@@ -466,7 +524,9 @@ export class AuthService {
 
   private async issueRefreshToken(userId: string): Promise<string> {
     const raw = randomBytes(REFRESH_TOKEN_BYTES).toString('hex');
-    const days = Number(this.config.get<string>('REFRESH_TOKEN_EXPIRES_IN_DAYS', '30'));
+    const days = Number(
+      this.config.get<string>('REFRESH_TOKEN_EXPIRES_IN_DAYS', '30'),
+    );
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     await this.prisma.refreshToken.create({
       data: { userId, tokenHash: this.hashToken(raw), expiresAt },

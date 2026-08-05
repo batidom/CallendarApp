@@ -76,7 +76,11 @@ export class FriendsService {
           data: { status: 'accepted', respondedAt: new Date() },
         }),
         this.prisma.notification.create({
-          data: { userId: target.id, type: 'friend_request_accepted', actorId: userId },
+          data: {
+            userId: target.id,
+            type: 'friend_request_accepted',
+            actorId: userId,
+          },
         }),
       ]);
       return friendship;
@@ -91,7 +95,11 @@ export class FriendsService {
         data: { requesterId: userId, addresseeId: target.id },
       }),
       this.prisma.notification.create({
-        data: { userId: target.id, type: 'friend_request_received', actorId: userId },
+        data: {
+          userId: target.id,
+          type: 'friend_request_received',
+          actorId: userId,
+        },
       }),
     ]);
     return friendship;
@@ -103,7 +111,11 @@ export class FriendsService {
       include: { requester: { select: PUBLIC_PROFILE_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
-    return requests.map(({ id, createdAt, requester }) => ({ id, createdAt, user: requester }));
+    return requests.map(({ id, createdAt, requester }) => ({
+      id,
+      createdAt,
+      user: requester,
+    }));
   }
 
   async listOutgoingRequests(userId: string) {
@@ -112,7 +124,11 @@ export class FriendsService {
       include: { addressee: { select: PUBLIC_PROFILE_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
-    return requests.map(({ id, createdAt, addressee }) => ({ id, createdAt, user: addressee }));
+    return requests.map(({ id, createdAt, addressee }) => ({
+      id,
+      createdAt,
+      user: addressee,
+    }));
   }
 
   async acceptRequest(userId: string, requestId: string) {
@@ -123,7 +139,11 @@ export class FriendsService {
         data: { status: 'accepted', respondedAt: new Date() },
       }),
       this.prisma.notification.create({
-        data: { userId: request.requesterId, type: 'friend_request_accepted', actorId: userId },
+        data: {
+          userId: request.requesterId,
+          type: 'friend_request_accepted',
+          actorId: userId,
+        },
       }),
     ]);
     return friendship;
@@ -135,7 +155,9 @@ export class FriendsService {
   }
 
   async cancelRequest(userId: string, requestId: string) {
-    const request = await this.prisma.friendship.findUnique({ where: { id: requestId } });
+    const request = await this.prisma.friendship.findUnique({
+      where: { id: requestId },
+    });
     if (!request || request.status !== 'pending') {
       throw new NotFoundException('Friend request not found');
     }
@@ -161,19 +183,32 @@ export class FriendsService {
         addressee: { select: PUBLIC_PROFILE_SELECT },
       },
     });
-    const friends = friendships.map((f) => (f.requesterId === userId ? f.addressee : f.requester));
-    if (friends.length === 0) return friends.map((friend) => ({ ...friend, inviteCount: 0 }));
+    const friends = friendships.map((f) =>
+      f.requesterId === userId ? f.addressee : f.requester,
+    );
+    if (friends.length === 0)
+      return friends.map((friend) => ({ ...friend, inviteCount: 0 }));
 
     const inviteCounts = await this.prisma.eventInvite.groupBy({
       by: ['invitedUserId'],
-      where: { invitedById: userId, invitedUserId: { in: friends.map((f) => f.id) } },
+      where: {
+        invitedById: userId,
+        invitedUserId: { in: friends.map((f) => f.id) },
+      },
       _count: { invitedUserId: true },
     });
-    const countByUserId = new Map(inviteCounts.map((c) => [c.invitedUserId, c._count.invitedUserId]));
+    const countByUserId = new Map(
+      inviteCounts.map((c) => [c.invitedUserId, c._count.invitedUserId]),
+    );
 
     return friends
-      .map((friend) => ({ ...friend, inviteCount: countByUserId.get(friend.id) ?? 0 }))
-      .sort((a, b) => b.inviteCount - a.inviteCount || a.name.localeCompare(b.name));
+      .map((friend) => ({
+        ...friend,
+        inviteCount: countByUserId.get(friend.id) ?? 0,
+      }))
+      .sort(
+        (a, b) => b.inviteCount - a.inviteCount || a.name.localeCompare(b.name),
+      );
   }
 
   async areFriends(userId: string, otherUserId: string) {
@@ -202,7 +237,9 @@ export class FriendsService {
   }
 
   private async findPendingIncoming(userId: string, requestId: string) {
-    const request = await this.prisma.friendship.findUnique({ where: { id: requestId } });
+    const request = await this.prisma.friendship.findUnique({
+      where: { id: requestId },
+    });
     if (!request || request.status !== 'pending') {
       throw new NotFoundException('Friend request not found');
     }
@@ -224,6 +261,8 @@ export class FriendsService {
     );
     if (!relation) return 'none';
     if (relation.status === 'accepted') return 'friends';
-    return relation.requesterId === userId ? 'pending_outgoing' : 'pending_incoming';
+    return relation.requesterId === userId
+      ? 'pending_outgoing'
+      : 'pending_incoming';
   }
 }

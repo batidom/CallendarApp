@@ -1,6 +1,10 @@
 import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const ATTACHMENTS_ROOT = join(process.cwd(), 'uploads', 'events');
@@ -78,7 +82,9 @@ export class AttachmentsService {
   }
 
   private async findOrThrow(eventId: string, attachmentId: string) {
-    const attachment = await this.prisma.attachment.findUnique({ where: { id: attachmentId } });
+    const attachment = await this.prisma.attachment.findUnique({
+      where: { id: attachmentId },
+    });
     if (!attachment || attachment.eventId !== eventId) {
       throw new NotFoundException('Attachment not found');
     }
@@ -88,7 +94,9 @@ export class AttachmentsService {
   // Owner, or any invitee whose invite has been accepted — attachments are
   // just more event content.
   private async assertCanView(userId: string, eventId: string) {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     if (!event) {
       throw new NotFoundException('Event not found');
     }
@@ -110,7 +118,9 @@ export class AttachmentsService {
   // a shared photo/video album, where an accidental or malicious delete by
   // an unrelated participant is a real concern.
   private async assertCanManage(userId: string, eventId: string) {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     if (!event) {
       throw new NotFoundException('Event not found');
     }
@@ -120,7 +130,9 @@ export class AttachmentsService {
       where: { eventId_invitedUserId: { eventId, invitedUserId: userId } },
     });
     if (invite?.status !== 'accepted') {
-      throw new ForbiddenException('You do not have permission to manage attachments for this event');
+      throw new ForbiddenException(
+        'You do not have permission to manage attachments for this event',
+      );
     }
   }
 }

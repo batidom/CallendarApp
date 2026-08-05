@@ -23,7 +23,9 @@ export class EventInvitesService {
   ) {}
 
   async invite(userId: string, eventId: string, dto: InviteToEventDto) {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     if (!event) {
       throw new NotFoundException('Event not found');
     }
@@ -64,7 +66,10 @@ export class EventInvitesService {
         }),
       ),
       ...usedGroupIds.map((groupId) =>
-        this.prisma.group.update({ where: { id: groupId }, data: { usageCount: { increment: 1 } } }),
+        this.prisma.group.update({
+          where: { id: groupId },
+          data: { usageCount: { increment: 1 } },
+        }),
       ),
     ]);
 
@@ -108,22 +113,31 @@ export class EventInvitesService {
   // information the person who sent the invite cares about, not something
   // that affects how everyone else already on the event should act.
   async respond(userId: string, inviteId: string, accept: boolean) {
-    const invite = await this.prisma.eventInvite.findUnique({ where: { id: inviteId } });
+    const invite = await this.prisma.eventInvite.findUnique({
+      where: { id: inviteId },
+    });
     if (!invite || invite.invitedUserId !== userId) {
       throw new NotFoundException('Invite not found');
     }
     if (invite.status !== 'pending') {
-      throw new BadRequestException('This invite has already been responded to');
+      throw new BadRequestException(
+        'This invite has already been responded to',
+      );
     }
 
-    const event = await this.prisma.event.findUnique({ where: { id: invite.eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: invite.eventId },
+    });
     if (!event) {
       throw new NotFoundException('Event not found');
     }
 
     const updated = await this.prisma.eventInvite.update({
       where: { id: inviteId },
-      data: { status: accept ? 'accepted' : 'declined', respondedAt: new Date() },
+      data: {
+        status: accept ? 'accepted' : 'declined',
+        respondedAt: new Date(),
+      },
     });
 
     if (event.userId !== userId) {
@@ -142,12 +156,16 @@ export class EventInvitesService {
   }
 
   async revoke(userId: string, eventId: string, inviteId: string) {
-    const invite = await this.prisma.eventInvite.findUnique({ where: { id: inviteId } });
+    const invite = await this.prisma.eventInvite.findUnique({
+      where: { id: inviteId },
+    });
     if (!invite || invite.eventId !== eventId) {
       throw new NotFoundException('Invite not found');
     }
 
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     const isOwner = event?.userId === userId;
     const isSelf = invite.invitedUserId === userId;
     if (!isOwner && !isSelf) {
@@ -171,7 +189,9 @@ export class EventInvitesService {
       throw new NotFoundException('You are not part of this event');
     }
 
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     if (!event) {
       throw new NotFoundException('Event not found');
     }
@@ -180,7 +200,10 @@ export class EventInvitesService {
       where: { eventId, status: 'accepted', invitedUserId: { not: userId } },
       select: { invitedUserId: true },
     });
-    const recipientIds = new Set([event.userId, ...otherAccepted.map((i) => i.invitedUserId)]);
+    const recipientIds = new Set([
+      event.userId,
+      ...otherAccepted.map((i) => i.invitedUserId),
+    ]);
     recipientIds.delete(userId);
 
     await this.prisma.$transaction([
@@ -198,7 +221,9 @@ export class EventInvitesService {
   }
 
   private async assertCanView(userId: string, eventId: string) {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     if (!event) {
       throw new NotFoundException('Event not found');
     }
