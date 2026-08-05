@@ -592,6 +592,18 @@ abstract class AppLocalizations {
   /// **'Play a sound'**
   String get notificationSoundEnabledLabel;
 
+  /// No description provided for @notificationVolumeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get notificationVolumeLabel;
+
+  /// No description provided for @reminderVolumeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get reminderVolumeLabel;
+
   /// No description provided for @actionDontAskAgain.
   ///
   /// In en, this message translates to:

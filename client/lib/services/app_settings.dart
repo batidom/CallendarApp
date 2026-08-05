@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -47,10 +46,13 @@ extension ReminderSoundLabel on ReminderSound {
         ReminderSound.custom => l10n.soundCustom,
       };
 
-  SystemSoundType? get systemSound => switch (this) {
+  // Bundled asset path for the built-in sounds, played via audioplayers
+  // rather than SystemSound.play() so [AppSettings.reminderVolume] actually
+  // applies — the OS system-sound API has no volume parameter.
+  String? get assetPath => switch (this) {
         ReminderSound.none => null,
-        ReminderSound.click => SystemSoundType.click,
-        ReminderSound.alert => SystemSoundType.alert,
+        ReminderSound.click => 'sounds/click.wav',
+        ReminderSound.alert => 'sounds/alert.wav',
         ReminderSound.custom => null,
       };
 }
@@ -83,6 +85,7 @@ class AppSettings {
     this.popupDurationSeconds = 8,
     this.reminderSound = ReminderSound.alert,
     this.customSoundPath,
+    this.reminderVolume = 0.7,
     this.weekStartDay = WeekStartDay.monday,
     this.language = AppLanguage.system,
     this.microphoneDeviceId,
@@ -90,6 +93,7 @@ class AppSettings {
     this.launchAtLoginEnabled = false,
     this.confirmBeforeLeavingEvent = true,
     this.notificationSoundEnabled = true,
+    this.notificationVolume = 0.7,
   });
 
   final ThemeMode themeMode;
@@ -102,6 +106,9 @@ class AppSettings {
   // is ReminderSound.custom. Kept even when a different sound is selected,
   // so switching back to "Custom sound file" doesn't forget the choice.
   final String? customSoundPath;
+  // 0.0-1.0, applied to whichever reminder sound is selected (built-in or
+  // custom file) via audioplayers.
+  final double reminderVolume;
   final WeekStartDay weekStartDay;
   final AppLanguage language;
   // Platform device id for the assistant's voice-command mic. Null means
@@ -128,6 +135,11 @@ class AppSettings {
   // on/off rather than per-type, matching how [notificationsEnabled]
   // already works.
   final bool notificationSoundEnabled;
+  // 0.0-1.0, applied to the bundled notification chime via audioplayers.
+  // Only affects the "other notifications" sound above — reminders use the
+  // OS's own system sounds (or a custom file played at full volume), which
+  // don't offer a volume knob to hook into.
+  final double notificationVolume;
 
   AppSettings copyWith({
     ThemeMode? themeMode,
@@ -137,12 +149,14 @@ class AppSettings {
     int? popupDurationSeconds,
     ReminderSound? reminderSound,
     String? customSoundPath,
+    double? reminderVolume,
     WeekStartDay? weekStartDay,
     AppLanguage? language,
     (String?, String?)? microphoneDevice,
     bool? launchAtLoginEnabled,
     bool? confirmBeforeLeavingEvent,
     bool? notificationSoundEnabled,
+    double? notificationVolume,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -152,6 +166,7 @@ class AppSettings {
       popupDurationSeconds: popupDurationSeconds ?? this.popupDurationSeconds,
       reminderSound: reminderSound ?? this.reminderSound,
       customSoundPath: customSoundPath ?? this.customSoundPath,
+      reminderVolume: reminderVolume ?? this.reminderVolume,
       weekStartDay: weekStartDay ?? this.weekStartDay,
       language: language ?? this.language,
       microphoneDeviceId: microphoneDevice != null ? microphoneDevice.$1 : microphoneDeviceId,
@@ -159,6 +174,7 @@ class AppSettings {
       launchAtLoginEnabled: launchAtLoginEnabled ?? this.launchAtLoginEnabled,
       confirmBeforeLeavingEvent: confirmBeforeLeavingEvent ?? this.confirmBeforeLeavingEvent,
       notificationSoundEnabled: notificationSoundEnabled ?? this.notificationSoundEnabled,
+      notificationVolume: notificationVolume ?? this.notificationVolume,
     );
   }
 }
@@ -173,6 +189,7 @@ class SettingsRepository {
   static const _popupDurationSecondsKey = 'settings_popup_duration_seconds';
   static const _reminderSoundKey = 'settings_reminder_sound';
   static const _customSoundPathKey = 'settings_custom_sound_path';
+  static const _reminderVolumeKey = 'settings_reminder_volume';
   static const _weekStartDayKey = 'settings_week_start_day';
   static const _languageKey = 'settings_language';
   static const _microphoneDeviceIdKey = 'settings_microphone_device_id';
@@ -180,6 +197,7 @@ class SettingsRepository {
   static const _launchAtLoginEnabledKey = 'settings_launch_at_login_enabled';
   static const _confirmBeforeLeavingEventKey = 'settings_confirm_before_leaving_event';
   static const _notificationSoundEnabledKey = 'settings_notification_sound_enabled';
+  static const _notificationVolumeKey = 'settings_notification_volume';
 
   Future<AppSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -198,6 +216,7 @@ class SettingsRepository {
       reminderSound:
           _enumFromName(ReminderSound.values, prefs.getString(_reminderSoundKey), defaults.reminderSound),
       customSoundPath: prefs.getString(_customSoundPathKey),
+      reminderVolume: prefs.getDouble(_reminderVolumeKey) ?? defaults.reminderVolume,
       weekStartDay:
           _enumFromName(WeekStartDay.values, prefs.getString(_weekStartDayKey), defaults.weekStartDay),
       language: _enumFromName(AppLanguage.values, prefs.getString(_languageKey), defaults.language),
@@ -208,6 +227,7 @@ class SettingsRepository {
           prefs.getBool(_confirmBeforeLeavingEventKey) ?? defaults.confirmBeforeLeavingEvent,
       notificationSoundEnabled:
           prefs.getBool(_notificationSoundEnabledKey) ?? defaults.notificationSoundEnabled,
+      notificationVolume: prefs.getDouble(_notificationVolumeKey) ?? defaults.notificationVolume,
     );
   }
 
@@ -224,6 +244,7 @@ class SettingsRepository {
     } else {
       await prefs.remove(_customSoundPathKey);
     }
+    await prefs.setDouble(_reminderVolumeKey, settings.reminderVolume);
     await prefs.setString(_weekStartDayKey, settings.weekStartDay.name);
     await prefs.setString(_languageKey, settings.language.name);
     if (settings.microphoneDeviceId != null) {
@@ -236,6 +257,7 @@ class SettingsRepository {
     await prefs.setBool(_launchAtLoginEnabledKey, settings.launchAtLoginEnabled);
     await prefs.setBool(_confirmBeforeLeavingEventKey, settings.confirmBeforeLeavingEvent);
     await prefs.setBool(_notificationSoundEnabledKey, settings.notificationSoundEnabled);
+    await prefs.setDouble(_notificationVolumeKey, settings.notificationVolume);
   }
 
   static T _enumFromName<T extends Enum>(List<T> values, String? name, T fallback) {

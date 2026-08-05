@@ -298,6 +298,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get notificationSoundEnabledLabel => 'Odtwarzaj dźwięk';
 
   @override
+  String get notificationVolumeLabel => 'Głośność';
+
+  @override
+  String get reminderVolumeLabel => 'Głośność';
+
+  @override
   String get actionDontAskAgain => 'Nie pytaj mnie ponownie';
 
   @override

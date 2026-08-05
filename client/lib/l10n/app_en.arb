@@ -144,6 +144,8 @@
   "sectionOtherNotifications": "Other notifications",
   "otherNotificationsSubtitle": "Friend requests, event invites, and updates to events shared with you",
   "notificationSoundEnabledLabel": "Play a sound",
+  "notificationVolumeLabel": "Volume",
+  "reminderVolumeLabel": "Volume",
   "actionDontAskAgain": "Don't ask me again",
   "confirmBeforeLeavingEventLabel": "Confirm before leaving a shared event",
   "confirmBeforeLeavingEventSubtitle": "Show a confirmation dialog when you leave an event someone else invited you to",

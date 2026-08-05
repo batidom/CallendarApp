@@ -110,6 +110,9 @@ flutter:
 
   assets:
     - assets/tray_icon.ico
+    - assets/sounds/notification.wav
+    - assets/sounds/click.wav
+    - assets/sounds/alert.wav
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

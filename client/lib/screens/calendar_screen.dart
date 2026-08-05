@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -12,6 +11,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../providers/providers.dart';
 import '../services/app_settings.dart';
 import '../services/app_window_controller.dart';
+import '../services/notification_sound_player.dart';
 import '../services/reminder_engine.dart';
 import '../utils/calendar_grid.dart';
 import '../utils/event_colors.dart';
@@ -118,8 +118,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       final cutoff = _lastSoundedNotificationAt;
       _lastSoundedNotificationAt = newest;
       if (cutoff == null) return;
-      if (newest.isAfter(cutoff) && ref.read(settingsControllerProvider).notificationSoundEnabled) {
-        SystemSound.play(SystemSoundType.alert);
+      final settings = ref.read(settingsControllerProvider);
+      if (newest.isAfter(cutoff) && settings.notificationSoundEnabled) {
+        playNotificationSound(settings);
       }
     });
 

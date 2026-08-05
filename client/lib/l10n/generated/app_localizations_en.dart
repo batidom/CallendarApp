@@ -297,6 +297,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSoundEnabledLabel => 'Play a sound';
 
   @override
+  String get notificationVolumeLabel => 'Volume';
+
+  @override
+  String get reminderVolumeLabel => 'Volume';
+
+  @override
   String get actionDontAskAgain => 'Don\'t ask me again';
 
   @override

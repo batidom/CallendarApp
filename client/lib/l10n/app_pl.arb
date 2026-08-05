@@ -138,6 +138,8 @@
   "sectionOtherNotifications": "Inne powiadomienia",
   "otherNotificationsSubtitle": "Zaproszenia do znajomych, zaproszenia na wydarzenia oraz zmiany w udostępnionych wydarzeniach",
   "notificationSoundEnabledLabel": "Odtwarzaj dźwięk",
+  "notificationVolumeLabel": "Głośność",
+  "reminderVolumeLabel": "Głośność",
   "actionDontAskAgain": "Nie pytaj mnie ponownie",
   "confirmBeforeLeavingEventLabel": "Potwierdź przed opuszczeniem udostępnionego wydarzenia",
   "confirmBeforeLeavingEventSubtitle": "Pokazuj okno potwierdzenia przy opuszczaniu wydarzenia, na które zostałeś(-aś) zaproszony(-a)",
