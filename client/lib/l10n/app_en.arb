@@ -1,0 +1,474 @@
+{
+  "@@locale": "en",
+
+  "actionCancel": "Cancel",
+  "actionSave": "Save",
+  "actionDelete": "Delete",
+  "actionAdd": "Add",
+  "actionGo": "Go",
+
+  "loginCreateAccount": "Create account",
+  "loginSignIn": "Sign in",
+  "fieldEmail": "Email",
+  "validatorEmailInvalid": "Enter a valid email",
+  "fieldName": "Name",
+  "validatorNameRequired": "Name is required",
+  "fieldSurnameOptional": "Surname (optional)",
+  "fieldUsername": "Username",
+  "usernameHelperText": "How friends find you to add you",
+  "validatorUsernameTooShort": "At least 3 characters",
+  "validatorUsernameFormat": "Letters, numbers, and underscores only",
+  "fieldPassword": "Password",
+  "validatorPasswordTooShort": "At least 8 characters",
+  "loginRegisterButton": "Register",
+  "loginLoginButton": "Login",
+  "loginToggleToSignIn": "Already have an account? Sign in",
+  "loginToggleToRegister": "Need an account? Register",
+  "loginKeepMeSignedIn": "Keep me signed in",
+  "loginKeepMeSignedInSubtitle": "Turn off on a shared computer so the next person doesn't open your calendar",
+
+  "verifyEmailTitle": "Verify your email",
+  "verifyEmailSubtitle": "We sent a 6-digit code to {email}. Enter it below to finish setting up your account.",
+  "@verifyEmailSubtitle": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "fieldVerificationCode": "Verification code",
+  "validatorCodeInvalid": "Enter the 6-digit code",
+  "verifyEmailButton": "Verify",
+  "verifyEmailResend": "Resend code",
+  "verifyEmailResendSent": "Code sent — check your inbox",
+  "verifyEmailBackToSignIn": "Back to sign in",
+
+  "loginForgotPassword": "Forgot password?",
+  "forgotPasswordTitle": "Reset your password",
+  "forgotPasswordSubtitle": "Enter your account email and we'll send you a reset code.",
+  "forgotPasswordSendButton": "Send reset code",
+  "forgotPasswordBackToSignIn": "Back to sign in",
+  "resetPasswordTitle": "Enter reset code",
+  "resetPasswordSubtitle": "We sent a 6-digit code to {email}. Enter it below along with your new password.",
+  "@resetPasswordSubtitle": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "fieldNewPassword": "New password",
+  "resetPasswordButton": "Reset password",
+
+  "calendarTitle": "Calendar",
+  "eventsLoadError": "Failed to load events: {error}",
+  "@eventsLoadError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "tooltipSettings": "Settings",
+  "tooltipSignOut": "Sign out",
+  "tooltipHideEsc": "Hide (Esc)",
+  "tooltipNotifications": "Notifications",
+  "noNotificationsYet": "No notifications yet",
+  "actionViewAllNotifications": "View all notifications",
+  "notificationsScreenTitle": "Notifications",
+  "tooltipFriendsGroups": "Friends & Groups",
+  "goToMonthTitle": "Go to month",
+  "noEventsOnThisDay": "No events on this day",
+  "anytime": "Anytime",
+  "somedayHeader": "Someday...",
+  "addSomedayHint": "Add something for someday...",
+  "dragIdeasHint": "Drag ideas onto a day when you're ready",
+  "allDay": "All day",
+  "durationTbd": "{time} (duration TBD)",
+  "@durationTbd": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "tooltipHasDescription": "Has a description",
+  "tooltipRepeats": "Repeats — edit to change the series",
+  "tooltipNotSynced": "Not yet synced",
+  "notificationFriendRequestReceived": "{name} sent you a friend request",
+  "@notificationFriendRequestReceived": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "notificationFriendRequestAccepted": "{name} accepted your friend request",
+  "@notificationFriendRequestAccepted": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "notificationLeftEvent": "{name} left \"{event}\"",
+  "@notificationLeftEvent": {
+    "placeholders": { "name": { "type": "String" }, "event": { "type": "String" } }
+  },
+  "notificationInviteAccepted": "{name} accepted your invite to \"{event}\"",
+  "@notificationInviteAccepted": {
+    "placeholders": { "name": { "type": "String" }, "event": { "type": "String" } }
+  },
+  "notificationInviteDeclined": "{name} declined your invite to \"{event}\"",
+  "@notificationInviteDeclined": {
+    "placeholders": { "name": { "type": "String" }, "event": { "type": "String" } }
+  },
+  "notificationDateChanged": "{name} changed the date of \"{event}\" from {oldValue} to {newValue}",
+  "@notificationDateChanged": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "event": { "type": "String" },
+      "oldValue": { "type": "String" },
+      "newValue": { "type": "String" }
+    }
+  },
+  "notificationTimeChanged": "{name} changed the time of \"{event}\" from {oldValue} to {newValue}",
+  "@notificationTimeChanged": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "event": { "type": "String" },
+      "oldValue": { "type": "String" },
+      "newValue": { "type": "String" }
+    }
+  },
+  "notificationLocationChanged": "{name} changed the location of \"{event}\" from {oldValue} to {newValue}",
+  "@notificationLocationChanged": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "event": { "type": "String" },
+      "oldValue": { "type": "String" },
+      "newValue": { "type": "String" }
+    }
+  },
+  "notificationDescriptionChanged": "{name} changed the description of \"{event}\" from \"{oldValue}\" to \"{newValue}\"",
+  "@notificationDescriptionChanged": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "event": { "type": "String" },
+      "oldValue": { "type": "String" },
+      "newValue": { "type": "String" }
+    }
+  },
+  "notificationEmptyValue": "none",
+  "@notificationEmptyValue": {},
+  "actionLeaveEvent": "Leave event",
+  "leaveEventDialogTitle": "Leave this event?",
+  "leaveEventDialogMessage": "You'll stop seeing this on your calendar, and the organizer and other participants will be notified that you left.",
+  "sectionConfirmations": "Confirmations",
+  "sectionOtherNotifications": "Other notifications",
+  "otherNotificationsSubtitle": "Friend requests, event invites, and updates to events shared with you",
+  "notificationSoundEnabledLabel": "Play a sound",
+  "actionDontAskAgain": "Don't ask me again",
+  "confirmBeforeLeavingEventLabel": "Confirm before leaving a shared event",
+  "confirmBeforeLeavingEventSubtitle": "Show a confirmation dialog when you leave an event someone else invited you to",
+
+  "eventFormEditTitle": "Edit event",
+  "eventFormNewTitle": "New event",
+  "sharedWithYou": "Shared with you",
+  "sharedByOwner": "Shared by {ownerName}",
+  "@sharedByOwner": {
+    "placeholders": { "ownerName": { "type": "String" } }
+  },
+  "tooltipSharedEvent": "Shared by {ownerName}",
+  "@tooltipSharedEvent": {
+    "placeholders": { "ownerName": { "type": "String" } }
+  },
+  "alsoSharedWithHeader": "Also shared with",
+  "pendingInviteBadge": "Invite pending",
+  "pendingInviteScreenTitle": "Event invite",
+  "pendingInviteMessage": "{ownerName} invited you to this event.",
+  "@pendingInviteMessage": {
+    "placeholders": { "ownerName": { "type": "String" } }
+  },
+  "actionAccept": "Accept",
+  "actionDecline": "Decline",
+  "inviteRespondFailed": "Couldn't respond to the invite: {error}",
+  "@inviteRespondFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "fieldTitle": "Title",
+  "validatorTitleRequired": "Title is required",
+  "fieldDescription": "Description",
+  "fieldLocation": "Location",
+  "fieldDay": "Day",
+  "actionNoSpecificTime": "No specific time",
+  "actionAddATime": "Add a time",
+  "labelStart": "Start",
+  "labelEnd": "End",
+  "fieldRepeat": "Repeat",
+  "repeatNone": "Does not repeat",
+  "repeatDaily": "Daily",
+  "repeatWeekly": "Weekly",
+  "repeatMonthly": "Monthly",
+  "repeatYearly": "Yearly",
+  "everyWord": "Every",
+  "repeatUnitDay": "{count, plural, one{day} other{days}}",
+  "@repeatUnitDay": {
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "repeatUnitWeek": "{count, plural, one{week} other{weeks}}",
+  "@repeatUnitWeek": {
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "repeatUnitMonth": "{count, plural, one{month} other{months}}",
+  "@repeatUnitMonth": {
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "repeatUnitYear": "{count, plural, one{year} other{years}}",
+  "@repeatUnitYear": {
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "endsWord": "Ends",
+  "repeatEndNever": "Never",
+  "repeatEndOnDate": "On date",
+  "repeatEndOnDateWithValue": "On date ({date})",
+  "@repeatEndOnDateWithValue": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "repeatEndAfterCount": "{count, plural, one{After {count} occurrence} other{After {count} occurrences}}",
+  "@repeatEndAfterCount": {
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "occurrencesLabel": "Occurrences:",
+  "seriesChangeNotice": "Changes apply to the entire series.",
+  "remindersHeader": "Reminders",
+  "actionCustom": "Custom",
+  "reminderAtStartTime": "At start time",
+  "reminderMinutesBefore": "{minutes} min before",
+  "@reminderMinutesBefore": {
+    "placeholders": { "minutes": { "type": "num" } }
+  },
+  "reminderDaysBefore": "{days, plural, one{1 day before} other{{days} days before}}",
+  "@reminderDaysBefore": {
+    "placeholders": { "days": { "type": "num" } }
+  },
+  "reminderHoursBefore": "{hours, plural, one{1 hour before} other{{hours} hours before}}",
+  "@reminderHoursBefore": {
+    "placeholders": { "hours": { "type": "num" } }
+  },
+  "customReminderDialogTitle": "Remind me before",
+  "fieldAmount": "Amount",
+  "unitMinutes": "Minutes",
+  "unitHours": "Hours",
+  "unitDays": "Days",
+  "actionSaveChanges": "Save changes",
+  "actionCreateEvent": "Create event",
+
+  "settingsTitle": "Settings",
+  "settingsCategoryGeneral": "General",
+  "settingsCategoryGeneralSubtitle": "Theme, language, and startup",
+  "settingsCategoryCalendar": "Calendar",
+  "settingsCategoryCalendarSubtitle": "Which day the week starts on",
+  "settingsCategoryVoiceInput": "Voice input",
+  "settingsCategoryVoiceInputSubtitle": "Microphone used by the assistant",
+  "settingsCategoryReminders": "Reminders",
+  "settingsCategoryRemindersSubtitle": "Notification channel and sounds",
+  "settingsCategoryAccount": "Account",
+  "settingsCategoryAccountSubtitle": "Email, username, password, and account deletion",
+  "sectionAppearance": "Appearance",
+  "sectionCalendar": "Calendar",
+  "sectionReminders": "Reminders",
+  "sectionStartup": "Startup",
+  "launchAtLogin": "Launch at login",
+  "launchAtLoginSubtitle": "Start Calendar App minimized to the tray when you sign in to Windows, so reminders keep firing",
+  "sectionAccount": "Account",
+  "changeUsernameDialogTitle": "Change username",
+  "changeEmailDialogTitle": "Change email",
+  "changePasswordDialogTitle": "Change password",
+  "fieldNewUsername": "New username",
+  "fieldNewEmail": "New email",
+  "fieldCurrentPassword": "Current password",
+  "fieldNewPassword": "New password",
+  "verifyNewEmailDialogTitle": "Verify your new email",
+  "verifyNewEmailMessage": "Enter the code sent to {email}",
+  "@verifyNewEmailMessage": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "usernameChangedMessage": "Username changed",
+  "passwordChangedMessage": "Password changed",
+  "emailChangedMessage": "Email changed",
+  "sectionDangerZone": "Danger zone",
+  "actionDeleteAccount": "Delete account",
+  "deleteAccountDialogTitle": "Delete your account?",
+  "deleteAccountWarning": "This permanently deletes your account. Events, groups, and friendships that are only yours are removed entirely; anything shared with other people (like an event they accepted) is kept, with your identity anonymized. This can't be undone. Enter your password to confirm.",
+  "deleteAccountConfirmButton": "Delete my account",
+  "sectionLanguage": "Language",
+  "weekStartsOn": "Week starts on {day}",
+  "@weekStartsOn": {
+    "placeholders": { "day": { "type": "String" } }
+  },
+  "enableReminderNotifications": "Enable reminder notifications",
+  "inAppPopup": "In-app popup",
+  "inAppPopupSubtitle": "A small window from Calendar App itself",
+  "windowsNotification": "Windows notification",
+  "windowsNotificationSubtitle": "The OS notification, matches other apps",
+  "popupPosition": "Popup position",
+  "popupDuration": "Popup duration",
+  "soundSectionLabel": "Sound",
+  "soundFileFormatsHint": "mp3, wav, ogg, m4a...",
+  "noFileChosen": "No file chosen",
+  "actionChooseFile": "Choose file...",
+  "actionChange": "Change",
+  "tooltipPreview": "Preview",
+  "actionSendTestReminder": "Send a test reminder",
+  "dialogChooseReminderSound": "Choose a reminder sound",
+  "testReminderTitle": "Test reminder",
+  "testReminderBody": "This is what your reminders will look like.",
+  "themeSystem": "Match system",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "weekdayMonday": "Monday",
+  "weekdayTuesday": "Tuesday",
+  "weekdayWednesday": "Wednesday",
+  "weekdayThursday": "Thursday",
+  "weekdayFriday": "Friday",
+  "weekdaySaturday": "Saturday",
+  "weekdaySunday": "Sunday",
+  "soundNone": "No sound",
+  "soundClick": "Click",
+  "soundAlert": "Alert",
+  "soundCustom": "Custom sound file",
+  "cornerTopLeft": "Top left",
+  "cornerTopRight": "Top right",
+  "cornerBottomLeft": "Bottom left",
+  "cornerBottomRight": "Bottom right",
+  "languageSystemDefault": "System default",
+
+  "socialTitle": "Friends & Groups",
+  "tabFriends": "Friends",
+  "tabRequests": "Requests",
+  "tabGroups": "Groups",
+  "tabInvites": "Invites",
+  "searchByUsername": "Search by username",
+  "noFriendsYetHint": "No friends yet — search a username above",
+  "tooltipRemoveFriend": "Remove friend",
+  "noUsersFound": "No users found",
+  "relationshipFriends": "Friends",
+  "relationshipRequested": "Requested",
+  "relationshipCheckRequestsTab": "Check Requests tab",
+  "sectionIncoming": "Incoming",
+  "noIncomingRequests": "No incoming requests",
+  "sectionSent": "Sent",
+  "noPendingSentRequests": "No pending sent requests",
+  "sectionMyGroups": "My groups",
+  "sectionGroupsImIn": "Groups I'm in",
+  "noGroupsYetHint": "No groups yet — create one below",
+  "notInAnyGroupsHint": "You're not in any groups",
+  "groupOwnedBy": "Owned by {name}",
+  "@groupOwnedBy": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "memberCount": "{count, plural, one{{count} member} other{{count} members}}",
+  "@memberCount": {
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "actionAddMember": "Add member",
+  "actionRename": "Rename",
+  "dialogAddFriendTitle": "Add a friend",
+  "addFriendsFirstHint": "Add some friends first",
+  "dialogNewGroupTitle": "New group",
+  "dialogRenameGroupTitle": "Rename group",
+  "fieldGroupName": "Group name",
+  "noPendingEventInvites": "No pending event invites",
+  "inviteSubtitle": "From {name} · {when}",
+  "@inviteSubtitle": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "when": { "type": "String" }
+    }
+  },
+  "noSpecificTimeLabel": "No specific time",
+  "statusPending": "pending",
+  "statusAccepted": "accepted",
+  "statusDeclined": "declined",
+
+  "peopleHeader": "People",
+  "noOneElseInvited": "No one else invited yet",
+  "tooltipRemove": "Remove",
+  "actionAddPeople": "Add people",
+  "actionAddGroups": "Add groups",
+  "dialogAddPeopleTitle": "Add people",
+  "dialogAddGroupsTitle": "Add groups",
+  "noGroupsToPickHint": "You don't have any groups yet",
+  "searchHint": "Search",
+  "noResultsForSearch": "No matches",
+  "willBeSentOnSave": "Will be sent when you save",
+  "inviteApplyFailed": "Event saved, but invites couldn't be sent: {error}",
+  "@inviteApplyFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "dialogChooseFileToAttach": "Choose a file to attach",
+  "attachmentsHeader": "Attachments",
+  "actionAddFile": "Add file",
+  "noAttachmentsYet": "No attachments yet",
+  "tooltipDeleteAttachment": "Delete",
+
+  "failedToLoadGeneric": "Failed to load: {error}",
+  "@failedToLoadGeneric": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "failedToLoadFriends": "Failed to load friends: {error}",
+  "@failedToLoadFriends": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "failedToLoadGroups": "Failed to load groups: {error}",
+  "@failedToLoadGroups": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "failedToLoadInvites": "Failed to load invites: {error}",
+  "@failedToLoadInvites": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "failedToLoadAttachments": "Failed to load attachments: {error}",
+  "@failedToLoadAttachments": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "editRecurringEventTitle": "Edit recurring event",
+  "deleteRecurringEventTitle": "Delete recurring event",
+  "scopeThisEvent": "This event",
+  "scopeAllEvents": "All events",
+
+  "repeatMonthlyByDay": "Monthly on day {day}",
+  "@repeatMonthlyByDay": {
+    "placeholders": { "day": { "type": "int" } }
+  },
+  "repeatMonthlyByWeekday": "Monthly on the {ordinal} {weekday}",
+  "@repeatMonthlyByWeekday": {
+    "placeholders": {
+      "ordinal": { "type": "String" },
+      "weekday": { "type": "String" }
+    }
+  },
+  "ordinalFirst": "first",
+  "ordinalSecond": "second",
+  "ordinalThird": "third",
+  "ordinalFourth": "fourth",
+  "ordinalLast": "last",
+
+  "sectionVoiceInput": "Voice input",
+  "fieldMicrophone": "Microphone",
+  "microphoneSubtitle": "If voice commands aren't being picked up, pick the microphone you actually speak into — the system default isn't always the right one on machines with several.",
+  "microphoneSystemDefault": "System default",
+  "microphoneListError": "Couldn't list microphones.",
+  "actionTestMicrophone": "Test microphone",
+  "actionStopMicTest": "Stop test",
+
+  "tooltipAssistant": "Assistant",
+  "tooltipAddEvent": "Add event",
+  "assistantTitle": "Assistant",
+  "assistantInputHint": "Ask me to schedule, find, or change something...",
+  "assistantRecordingHint": "Listening... tap the mic again to stop",
+  "assistantTranscribingHint": "Transcribing...",
+  "assistantEmptyState": "Ask me to schedule, find, or change something on your calendar.",
+  "assistantConfirmDeleteCount": "{count, plural, one{Delete this event?} other{Delete these {count} events?}}",
+  "@assistantConfirmDeleteCount": {
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "assistantDeletedConfirmation": "Deleted \"{title}\".",
+  "@assistantDeletedConfirmation": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "assistantErrorGeneric": "Something went wrong: {error}",
+  "@assistantErrorGeneric": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "reminderStartingNow": "{title} is starting now",
+  "@reminderStartingNow": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "reminderWithLabel": "{title} — {label}",
+  "@reminderWithLabel": {
+    "placeholders": {
+      "title": { "type": "String" },
+      "label": { "type": "String" }
+    }
+  }
+}
