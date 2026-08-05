@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -880,6 +881,9 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               decoration: InputDecoration(labelText: l10n.fieldTitle),
               textInputAction: TextInputAction.next,
               autofocus: true,
+              minLines: 1,
+              maxLines: 3,
+              inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
               onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
               validator: (value) =>
                   (value == null || value.trim().isEmpty) ? l10n.validatorTitleRequired : null,
@@ -888,7 +892,8 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
             TextFormField(
               controller: _descriptionController,
               decoration: InputDecoration(labelText: l10n.fieldDescription),
-              maxLines: 3,
+              minLines: 3,
+              maxLines: 10,
             ),
             const SizedBox(height: 12),
             TextFormField(
