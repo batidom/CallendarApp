@@ -5,6 +5,8 @@ build/
 .env.local
 *.log
 .DS_Store
+backend/uploads/
+whisper/
 
 # Flutter (added in later phases)
 **/.dart_tool/
