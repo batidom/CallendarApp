@@ -8,6 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../providers/providers.dart';
 import '../services/app_settings.dart';
 import '../services/notification_popup.dart';
+import '../services/notification_sound_player.dart';
 import '../services/reminder_sound_player.dart';
 import 'settings_section_header.dart';
 
@@ -136,6 +137,25 @@ class RemindersSettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                  if (settings.reminderSound != ReminderSound.none)
+                    ListTile(
+                      dense: true,
+                      title: Text(l10n.reminderVolumeLabel),
+                      subtitle: Slider(
+                        min: 0,
+                        max: 1,
+                        divisions: 20,
+                        label: '${(settings.reminderVolume * 100).round()}%',
+                        value: settings.reminderVolume,
+                        onChanged: (value) =>
+                            controller.update((s) => s.copyWith(reminderVolume: value)),
+                      ),
+                      trailing: IconButton(
+                        tooltip: l10n.tooltipPreview,
+                        icon: const Icon(Icons.play_arrow, size: 20),
+                        onPressed: () => playReminderSound(settings),
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                     child: OutlinedButton.icon(
@@ -162,6 +182,29 @@ class RemindersSettingsScreen extends ConsumerWidget {
             title: Text(l10n.notificationSoundEnabledLabel),
             value: settings.notificationSoundEnabled,
             onChanged: (value) => controller.update((s) => s.copyWith(notificationSoundEnabled: value)),
+          ),
+          AbsorbPointer(
+            absorbing: !settings.notificationSoundEnabled,
+            child: Opacity(
+              opacity: settings.notificationSoundEnabled ? 1 : 0.4,
+              child: ListTile(
+                dense: true,
+                title: Text(l10n.notificationVolumeLabel),
+                subtitle: Slider(
+                  min: 0,
+                  max: 1,
+                  divisions: 20,
+                  label: '${(settings.notificationVolume * 100).round()}%',
+                  value: settings.notificationVolume,
+                  onChanged: (value) => controller.update((s) => s.copyWith(notificationVolume: value)),
+                ),
+                trailing: IconButton(
+                  tooltip: l10n.tooltipPreview,
+                  icon: const Icon(Icons.play_arrow, size: 20),
+                  onPressed: () => playNotificationSound(settings),
+                ),
+              ),
+            ),
           ),
         ],
       ),
