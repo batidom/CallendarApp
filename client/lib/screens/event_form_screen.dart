@@ -3,7 +3,6 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/local/app_database.dart';
@@ -14,6 +13,9 @@ import '../utils/recurrence.dart';
 import '../utils/reminders.dart';
 import 'event_attachments_section.dart';
 import 'event_invite_section.dart';
+import 'event_reminders_section.dart';
+import 'event_repeat_section.dart';
+import 'event_schedule_section.dart';
 
 class EventFormScreen extends ConsumerStatefulWidget {
   const EventFormScreen({super.key, this.existingEvent, this.initialDay, this.occurrenceStart});
@@ -29,15 +31,6 @@ class EventFormScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<EventFormScreen> createState() => _EventFormScreenState();
-}
-
-enum _ReminderUnit {
-  minutes(1),
-  hours(60),
-  days(1440);
-
-  const _ReminderUnit(this.minutesMultiplier);
-  final int minutesMultiplier;
 }
 
 /// How much of a recurring series an edit/delete should apply to.
@@ -87,7 +80,6 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
   // stick around and stay tappable to toggle on/off, rather than
   // disappearing the moment they're deselected.
   final SplayTreeSet<int> _customReminderOptions = SplayTreeSet<int>();
-  final _customReminderAmountController = TextEditingController();
 
   @override
   void initState() {
@@ -144,7 +136,6 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
-    _customReminderAmountController.dispose();
     super.dispose();
   }
 
@@ -421,319 +412,11 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
     if (date != null) setState(() => _repeatUntil = date);
   }
 
-  String _intervalUnitLabel(RecurrenceFrequency freq, AppLocalizations l10n) {
-    switch (freq) {
-      case RecurrenceFrequency.daily:
-        return l10n.repeatUnitDay(_repeatInterval);
-      case RecurrenceFrequency.weekly:
-        return l10n.repeatUnitWeek(_repeatInterval);
-      case RecurrenceFrequency.monthly:
-        return l10n.repeatUnitMonth(_repeatInterval);
-      case RecurrenceFrequency.yearly:
-        return l10n.repeatUnitYear(_repeatInterval);
+  Future<void> _onRepeatEndTypeChanged(RecurrenceEndType value) async {
+    setState(() => _repeatEndType = value);
+    if (value == RecurrenceEndType.onDate) {
+      await _pickRepeatUntil();
     }
-  }
-
-  static const _weekdayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-
-  String _fullWeekdayLabel(int weekday, AppLocalizations l10n) => switch (weekday) {
-        1 => l10n.weekdayMonday,
-        2 => l10n.weekdayTuesday,
-        3 => l10n.weekdayWednesday,
-        4 => l10n.weekdayThursday,
-        5 => l10n.weekdayFriday,
-        6 => l10n.weekdaySaturday,
-        _ => l10n.weekdaySunday,
-      };
-
-  String _ordinalLabel(int ordinal, AppLocalizations l10n) => switch (ordinal) {
-        1 => l10n.ordinalFirst,
-        2 => l10n.ordinalSecond,
-        3 => l10n.ordinalThird,
-        4 => l10n.ordinalFourth,
-        _ => l10n.ordinalLast,
-      };
-
-  // The day lives solely in the "Day" field above; this row only ever picks
-  // a time-of-day, so it never disturbs the day.
-  Widget _buildTimeRow({
-    required String label,
-    required DateTime value,
-    required VoidCallback onPickTime,
-    Widget? trailing,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(width: 44, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
-            onPressed: onPickTime,
-            child: Text(DateFormat.jm().format(value)),
-          ),
-          if (trailing != null) ...[const SizedBox(width: 8), trailing],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRepeatSection(AppLocalizations l10n) {
-    final freq = _repeatFrequency;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DropdownButtonFormField<RecurrenceFrequency?>(
-          initialValue: freq,
-          decoration: InputDecoration(labelText: l10n.fieldRepeat),
-          items: [
-            DropdownMenuItem(value: null, child: Text(l10n.repeatNone)),
-            DropdownMenuItem(value: RecurrenceFrequency.daily, child: Text(l10n.repeatDaily)),
-            DropdownMenuItem(value: RecurrenceFrequency.weekly, child: Text(l10n.repeatWeekly)),
-            DropdownMenuItem(value: RecurrenceFrequency.monthly, child: Text(l10n.repeatMonthly)),
-            DropdownMenuItem(value: RecurrenceFrequency.yearly, child: Text(l10n.repeatYearly)),
-          ],
-          onChanged: (value) => setState(() {
-            _repeatFrequency = value;
-            if (value == RecurrenceFrequency.weekly && _repeatWeekdays.isEmpty) {
-              _repeatWeekdays = {_startTime.weekday};
-            }
-          }),
-        ),
-        if (freq != null) ...[
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(l10n.everyWord),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 56,
-                child: TextFormField(
-                  initialValue: '$_repeatInterval',
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  onChanged: (value) {
-                    final parsed = int.tryParse(value);
-                    if (parsed != null && parsed > 0) setState(() => _repeatInterval = parsed);
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(_intervalUnitLabel(freq, l10n)),
-            ],
-          ),
-          if (freq == RecurrenceFrequency.weekly) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              children: List.generate(7, (i) {
-                final day = i + 1;
-                final selected = _repeatWeekdays.contains(day);
-                return FilterChip(
-                  label: Text(_weekdayLabels[i]),
-                  selected: selected,
-                  onSelected: (value) => setState(() {
-                    if (value) {
-                      _repeatWeekdays.add(day);
-                    } else if (_repeatWeekdays.length > 1) {
-                      _repeatWeekdays.remove(day);
-                    }
-                  }),
-                );
-              }),
-            ),
-          ],
-          if (freq == RecurrenceFrequency.monthly) ...[
-            const SizedBox(height: 4),
-            RadioListTile<bool>(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: Text(l10n.repeatMonthlyByDay(_startTime.day)),
-              value: false,
-              groupValue: _monthlyByWeekday,
-              onChanged: (value) => setState(() => _monthlyByWeekday = value!),
-            ),
-            RadioListTile<bool>(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: Text(l10n.repeatMonthlyByWeekday(
-                _ordinalLabel(monthlyWeekdayOrdinal(_startTime), l10n),
-                _fullWeekdayLabel(_startTime.weekday, l10n),
-              )),
-              value: true,
-              groupValue: _monthlyByWeekday,
-              onChanged: (value) => setState(() => _monthlyByWeekday = value!),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Text(l10n.endsWord, style: const TextStyle(fontWeight: FontWeight.w600)),
-          RadioListTile<RecurrenceEndType>(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            title: Text(l10n.repeatEndNever),
-            value: RecurrenceEndType.never,
-            groupValue: _repeatEndType,
-            onChanged: (value) => setState(() => _repeatEndType = value!),
-          ),
-          RadioListTile<RecurrenceEndType>(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            title: Text(_repeatUntil == null
-                ? l10n.repeatEndOnDate
-                : l10n.repeatEndOnDateWithValue(DateFormat.yMMMd().format(_repeatUntil!))),
-            value: RecurrenceEndType.onDate,
-            groupValue: _repeatEndType,
-            onChanged: (value) async {
-              setState(() => _repeatEndType = value!);
-              await _pickRepeatUntil();
-            },
-          ),
-          RadioListTile<RecurrenceEndType>(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            title: Text(l10n.repeatEndAfterCount(_repeatCount)),
-            value: RecurrenceEndType.afterCount,
-            groupValue: _repeatEndType,
-            onChanged: (value) => setState(() => _repeatEndType = value!),
-          ),
-          if (_repeatEndType == RecurrenceEndType.afterCount)
-            Padding(
-              padding: const EdgeInsets.only(left: 32),
-              child: Row(
-                children: [
-                  Text(l10n.occurrencesLabel),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 56,
-                    child: TextFormField(
-                      initialValue: '$_repeatCount',
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      onChanged: (value) {
-                        final parsed = int.tryParse(value);
-                        if (parsed != null && parsed > 0) setState(() => _repeatCount = parsed);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (widget.existingEvent?.rrule != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                l10n.seriesChangeNotice,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildRemindersSection(AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.remindersHeader, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            for (final minutes in reminderPresets)
-              FilterChip(
-                label: Text(reminderLabel(minutes, l10n)),
-                selected: _selectedReminderMinutes.contains(minutes),
-                onSelected: (selected) => setState(() {
-                  if (selected) {
-                    _selectedReminderMinutes.add(minutes);
-                  } else {
-                    _selectedReminderMinutes.remove(minutes);
-                  }
-                }),
-              ),
-            for (final minutes in _customReminderOptions)
-              FilterChip(
-                label: Text(reminderLabel(minutes, l10n)),
-                selected: _selectedReminderMinutes.contains(minutes),
-                onSelected: (selected) => setState(() {
-                  if (selected) {
-                    _selectedReminderMinutes.add(minutes);
-                  } else {
-                    _selectedReminderMinutes.remove(minutes);
-                  }
-                }),
-                onDeleted: () => setState(() {
-                  _customReminderOptions.remove(minutes);
-                  _selectedReminderMinutes.remove(minutes);
-                }),
-              ),
-            ActionChip(
-              avatar: const Icon(Icons.add, size: 18),
-              label: Text(l10n.actionCustom),
-              onPressed: () => _promptCustomReminder(l10n),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Future<void> _promptCustomReminder(AppLocalizations l10n) async {
-    _customReminderAmountController.clear();
-    var unit = _ReminderUnit.minutes;
-
-    final minutes = await showDialog<int>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(l10n.customReminderDialogTitle),
-          content: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _customReminderAmountController,
-                  keyboardType: TextInputType.number,
-                  autofocus: true,
-                  decoration: InputDecoration(labelText: l10n.fieldAmount),
-                ),
-              ),
-              const SizedBox(width: 12),
-              DropdownButton<_ReminderUnit>(
-                value: unit,
-                items: [
-                  DropdownMenuItem(value: _ReminderUnit.minutes, child: Text(l10n.unitMinutes)),
-                  DropdownMenuItem(value: _ReminderUnit.hours, child: Text(l10n.unitHours)),
-                  DropdownMenuItem(value: _ReminderUnit.days, child: Text(l10n.unitDays)),
-                ],
-                onChanged: (value) => setDialogState(() => unit = value!),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l10n.actionCancel)),
-            FilledButton(
-              onPressed: () {
-                final amount = int.tryParse(_customReminderAmountController.text);
-                if (amount == null || amount <= 0) return;
-                Navigator.of(context).pop(amount * unit.minutesMultiplier);
-              },
-              child: Text(l10n.actionAdd),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (minutes == null) return;
-    setState(() {
-      if (!reminderPresets.contains(minutes)) {
-        _customReminderOptions.add(minutes);
-      }
-      _selectedReminderMinutes.add(minutes);
-    });
   }
 
   Future<void> _delete() async {
@@ -906,36 +589,71 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
             ),
             const SizedBox(height: 12),
             if (_hasSchedule) ...[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.fieldDay),
-                subtitle: Text(DateFormat.yMMMd().format(_hasSpecificTime ? _startTime : _day)),
-                onTap: _pickDay,
-                trailing: _hasSpecificTime
-                    ? TextButton(onPressed: _removeSpecificTime, child: Text(l10n.actionNoSpecificTime))
-                    : TextButton(onPressed: _addSpecificTime, child: Text(l10n.actionAddATime)),
+              EventScheduleSection(
+                hasSpecificTime: _hasSpecificTime,
+                day: _day,
+                startTime: _startTime,
+                endTime: _endTime,
+                isAllDay: _isAllDay,
+                onPickDay: _pickDay,
+                onRemoveSpecificTime: _removeSpecificTime,
+                onAddSpecificTime: _addSpecificTime,
+                onAllDayChanged: (value) => setState(() => _isAllDay = value),
+                onPickStartTime: () => _pickTime(isStart: true),
+                onPickEndTime: () => _pickTime(isStart: false),
               ),
               if (_hasSpecificTime) ...[
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.allDay),
-                  value: _isAllDay,
-                  onChanged: (value) => setState(() => _isAllDay = value),
-                ),
-                _buildTimeRow(
-                  label: l10n.labelStart,
-                  value: _startTime,
-                  onPickTime: () => _pickTime(isStart: true),
-                ),
-                _buildTimeRow(
-                  label: l10n.labelEnd,
-                  value: _endTime,
-                  onPickTime: () => _pickTime(isStart: false),
-                ),
                 const SizedBox(height: 12),
-                _buildRepeatSection(l10n),
+                EventRepeatSection(
+                  frequency: _repeatFrequency,
+                  interval: _repeatInterval,
+                  weekdays: _repeatWeekdays,
+                  monthlyByWeekday: _monthlyByWeekday,
+                  endType: _repeatEndType,
+                  until: _repeatUntil,
+                  count: _repeatCount,
+                  startTime: _startTime,
+                  isEditingSeries: widget.existingEvent?.rrule != null,
+                  onFrequencyChanged: (value) => setState(() {
+                    _repeatFrequency = value;
+                    if (value == RecurrenceFrequency.weekly && _repeatWeekdays.isEmpty) {
+                      _repeatWeekdays = {_startTime.weekday};
+                    }
+                  }),
+                  onIntervalChanged: (value) => setState(() => _repeatInterval = value),
+                  onWeekdayToggled: (day, selected) => setState(() {
+                    if (selected) {
+                      _repeatWeekdays.add(day);
+                    } else if (_repeatWeekdays.length > 1) {
+                      _repeatWeekdays.remove(day);
+                    }
+                  }),
+                  onMonthlyByWeekdayChanged: (value) => setState(() => _monthlyByWeekday = value),
+                  onEndTypeChanged: _onRepeatEndTypeChanged,
+                  onCountChanged: (value) => setState(() => _repeatCount = value),
+                ),
                 const SizedBox(height: 20),
-                _buildRemindersSection(l10n),
+                EventRemindersSection(
+                  selectedMinutes: _selectedReminderMinutes,
+                  customOptions: _customReminderOptions,
+                  onToggle: (minutes, selected) => setState(() {
+                    if (selected) {
+                      _selectedReminderMinutes.add(minutes);
+                    } else {
+                      _selectedReminderMinutes.remove(minutes);
+                    }
+                  }),
+                  onDeleteCustom: (minutes) => setState(() {
+                    _customReminderOptions.remove(minutes);
+                    _selectedReminderMinutes.remove(minutes);
+                  }),
+                  onCustomAdded: (minutes) => setState(() {
+                    if (!reminderPresets.contains(minutes)) {
+                      _customReminderOptions.add(minutes);
+                    }
+                    _selectedReminderMinutes.add(minutes);
+                  }),
+                ),
               ],
             ],
             if (isEditing) ...[
