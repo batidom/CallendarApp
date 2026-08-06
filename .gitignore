@@ -14,6 +14,7 @@ start-all.bat
 start-backend.bat
 start-client.bat
 start-ollama.bat
+guidelines_2FA_calendar_en.txt
 
 # Flutter (added in later phases)
 **/.dart_tool/
