@@ -72,7 +72,7 @@ dependencies:
   uuid: ^4.5.1
   connectivity_plus: ^6.0.5
   local_notifier: ^0.1.6
-  file_picker: ^11.0.2
+  file_picker: ^11.0.3
   audioplayers: ^6.8.1
   url_launcher: ^6.3.1
   mime: ^1.0.5
@@ -98,6 +98,20 @@ dev_dependencies:
   # Drift code generation
   build_runner: ^2.4.13
   drift_dev: ^2.20.0
+
+  # Generates the Android/Windows app icon from assets/icon/ (see the
+  # flutter_launcher_icons: config block below) — run
+  # `dart run flutter_launcher_icons` after changing the source images.
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#3F51B5"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
