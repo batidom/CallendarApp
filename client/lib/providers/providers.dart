@@ -131,10 +131,21 @@ final launchAtLoginSyncProvider = Provider<void>((ref) {
   });
 });
 
-enum AuthStatus { unknown, authenticated, unauthenticated, needsVerification }
+enum AuthStatus {
+  unknown,
+  authenticated,
+  unauthenticated,
+  needsVerification,
+  needsTwoFactor,
+}
 
 class AuthState {
-  const AuthState(this.status, {this.errorMessage, this.pendingVerificationEmail});
+  const AuthState(
+    this.status, {
+    this.errorMessage,
+    this.pendingVerificationEmail,
+    this.pendingTwoFactorToken,
+  });
 
   final AuthStatus status;
   final String? errorMessage;
@@ -143,6 +154,11 @@ class AuthState {
   /// code screen should submit against (came either from register() or from
   /// login()'s 403 EMAIL_NOT_VERIFIED response).
   final String? pendingVerificationEmail;
+
+  /// Set when [status] is [AuthStatus.needsTwoFactor] — the bridge token
+  /// from login()'s 403 TOTP_REQUIRED response, submitted along with the
+  /// user's code to AuthRepository.verifyTwoFactor().
+  final String? pendingTwoFactorToken;
 }
 
 class AuthController extends StateNotifier<AuthState> {
@@ -169,8 +185,35 @@ class AuthController extends StateNotifier<AuthState> {
         );
         return;
       }
+      if (e.statusCode == 403 && e.data?['code'] == 'TOTP_REQUIRED') {
+        state = AuthState(
+          AuthStatus.needsTwoFactor,
+          pendingTwoFactorToken: e.data?['twoFactorToken'] as String?,
+        );
+        return;
+      }
       state = AuthState(AuthStatus.unauthenticated, errorMessage: e.message);
     }
+  }
+
+  Future<void> verifyTwoFactor(String code, {bool remember = true}) async {
+    final token = state.pendingTwoFactorToken;
+    if (token == null) return;
+    try {
+      await _repository.verifyTwoFactor(twoFactorToken: token, code: code, remember: remember);
+      state = const AuthState(AuthStatus.authenticated);
+    } on ApiException catch (e) {
+      state = AuthState(
+        AuthStatus.needsTwoFactor,
+        errorMessage: e.message,
+        pendingTwoFactorToken: token,
+      );
+    }
+  }
+
+  /// Back out of the two-factor code-entry screen to plain sign-in.
+  void cancelTwoFactor() {
+    state = const AuthState(AuthStatus.unauthenticated);
   }
 
   Future<void> register({

@@ -193,6 +193,33 @@ class ApiClient {
         }));
   }
 
+  // Completes a login that was paused by a TOTP_REQUIRED response from
+  // login() above — code is either a 6-digit TOTP code or a backup code.
+  Future<Map<String, dynamic>> verifyTwoFactor({
+    required String twoFactorToken,
+    required String code,
+  }) {
+    return _request(() => _dio.post('/auth/2fa/verify', data: {
+          'twoFactorToken': twoFactorToken,
+          'code': code,
+        }));
+  }
+
+  Future<Map<String, dynamic>> setupTotp() {
+    return _request(() => _dio.post('/auth/2fa/totp/setup'));
+  }
+
+  Future<Map<String, dynamic>> enableTotp(String code) {
+    return _request(() => _dio.post('/auth/2fa/totp/enable', data: {'code': code}));
+  }
+
+  Future<void> disableTotp({required String password, required String code}) {
+    return _request(() => _dio.post('/auth/2fa/totp/disable', data: {
+          'password': password,
+          'code': code,
+        }));
+  }
+
   Future<List<Map<String, dynamic>>> fetchEvents({
     required DateTime start,
     required DateTime end,

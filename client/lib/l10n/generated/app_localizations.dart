@@ -128,6 +128,24 @@ abstract class AppLocalizations {
   /// **'Go'**
   String get actionGo;
 
+  /// No description provided for @actionEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get actionEnable;
+
+  /// No description provided for @actionDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get actionDisable;
+
+  /// No description provided for @actionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get actionDone;
+
   /// No description provided for @loginCreateAccount.
   ///
   /// In en, this message translates to:
@@ -289,6 +307,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to sign in'**
   String get verifyEmailBackToSignIn;
+
+  /// No description provided for @twoFactorLoginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-factor authentication'**
+  String get twoFactorLoginTitle;
+
+  /// No description provided for @twoFactorLoginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from your authenticator app'**
+  String get twoFactorLoginSubtitle;
+
+  /// No description provided for @twoFactorBackupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter one of your backup codes'**
+  String get twoFactorBackupSubtitle;
+
+  /// No description provided for @fieldTwoFactorCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication code'**
+  String get fieldTwoFactorCode;
+
+  /// No description provided for @fieldBackupCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup code'**
+  String get fieldBackupCode;
+
+  /// No description provided for @validatorTwoFactorCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid code'**
+  String get validatorTwoFactorCodeInvalid;
+
+  /// No description provided for @twoFactorUseBackupCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a backup code instead'**
+  String get twoFactorUseBackupCode;
+
+  /// No description provided for @twoFactorUseAuthenticatorApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your authenticator app instead'**
+  String get twoFactorUseAuthenticatorApp;
 
   /// No description provided for @loginForgotPassword.
   ///
@@ -1107,6 +1173,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Email changed'**
   String get emailChangedMessage;
+
+  /// No description provided for @sectionTwoFactorAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-factor authentication'**
+  String get sectionTwoFactorAuth;
+
+  /// No description provided for @twoFactorStatusEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get twoFactorStatusEnabled;
+
+  /// No description provided for @twoFactorStatusDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get twoFactorStatusDisabled;
+
+  /// No description provided for @twoFactorSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an extra layer of security with an authenticator app'**
+  String get twoFactorSectionSubtitle;
+
+  /// No description provided for @twoFactorSetupDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up authenticator app'**
+  String get twoFactorSetupDialogTitle;
+
+  /// No description provided for @twoFactorSetupInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan this QR code with your authenticator app, or enter the code manually.'**
+  String get twoFactorSetupInstructions;
+
+  /// No description provided for @twoFactorBackupCodesDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your backup codes'**
+  String get twoFactorBackupCodesDialogTitle;
+
+  /// No description provided for @twoFactorBackupCodesWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Each code can be used once if you lose access to your authenticator app. Store them somewhere safe — they won\'t be shown again.'**
+  String get twoFactorBackupCodesWarning;
+
+  /// No description provided for @twoFactorBackupCodesConfirmCheckbox.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve saved these codes somewhere safe'**
+  String get twoFactorBackupCodesConfirmCheckbox;
+
+  /// No description provided for @twoFactorDisableDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable two-factor authentication'**
+  String get twoFactorDisableDialogTitle;
 
   /// No description provided for @sectionDangerZone.
   ///

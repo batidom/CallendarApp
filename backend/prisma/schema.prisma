@@ -16,6 +16,15 @@ model User {
   username     String   @unique
   timezone     String?
   emailVerified Boolean @default(false) @map("email_verified")
+  // Two-factor authentication. twoFactorMethod is a discriminator ('totp'
+  // today, room for e.g. 'email_otp' later) so a second method doesn't need
+  // a schema change — twoFactorSecret alone can't tell them apart once more
+  // than one method exists. twoFactorSecret is AES-256-GCM encrypted at rest
+  // (see totp-crypto.util.ts) since, unlike a password, it must be
+  // recoverable in its original form to compute a comparison code.
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+  twoFactorMethod  String? @map("two_factor_method")
+  twoFactorSecret  String? @map("two_factor_secret")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
   // Set when the account is deleted — the row itself is kept (never hard
   // deleted) as an anonymized tombstone so foreign keys from OTHER users'
@@ -40,6 +49,8 @@ model User {
   passwordResetCode      PasswordResetCode?
   receivedNotifications  Notification[] @relation("NotificationRecipient")
   actedNotifications     Notification[] @relation("NotificationActor")
+  twoFactorBackupCodes   TwoFactorBackupCode[]
+  pendingTwoFactorLogins PendingTwoFactorLogin[]
 
   @@map("users")
 }
@@ -157,6 +168,51 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// Single-use recovery codes issued once, at the moment 2FA is successfully
+// enabled (see AuthService.enableTotp()). Hashed with bcrypt (same
+// SALT_ROUNDS as passwords) rather than the fast SHA-256 used for
+// RefreshToken/verification codes: unlike those high-entropy
+// machine-generated bearer tokens, a leaked backup code is directly usable
+// by a human exactly like a password would be, so it gets the same
+// slow-hash protection. Not unique-per-user — the whole batch issued at
+// once coexists as separate rows, consumed (usedAt set, not deleted) one at
+// a time, so a user can later see how many are left.
+model TwoFactorBackupCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @map("code_hash")
+  usedAt    DateTime? @map("used_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factor_backup_codes")
+}
+
+// The bridge between "password verified" and "fully logged in" once a user
+// has 2FA enabled — see AuthService.login()/verifyTwoFactorLogin(). Combines
+// RefreshToken's pattern (opaque randomBytes token, only its hash persisted,
+// @unique, short-lived, deleted on consume) with EmailVerificationCode's
+// pattern (attempts counter capping brute-force of the 6-digit code). Not
+// unique-per-user: concurrent login attempts from different devices each
+// get their own row. method mirrors User.twoFactorMethod so a future second
+// method can be verified differently here without a schema change.
+model PendingTwoFactorLogin {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  method    String
+  tokenHash String   @unique @map("token_hash")
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("pending_two_factor_logins")
 }
 
 model OAuthIntegration {

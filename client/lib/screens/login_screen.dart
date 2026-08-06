@@ -26,6 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isSubmitting = false;
   bool _keepMeSignedIn = true;
   String? _resendMessage;
+  bool _useBackupCode = false;
 
   _ForgotPasswordStep _forgotPasswordStep = _ForgotPasswordStep.none;
   String? _resetEmail;
@@ -74,6 +75,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref
         .read(authControllerProvider.notifier)
         .verifyEmail(_codeController.text.trim(), remember: _keepMeSignedIn);
+    if (mounted) setState(() => _isSubmitting = false);
+  }
+
+  Future<void> _submitTwoFactor() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSubmitting = true);
+    await ref
+        .read(authControllerProvider.notifier)
+        .verifyTwoFactor(_codeController.text.trim(), remember: _keepMeSignedIn);
     if (mounted) setState(() => _isSubmitting = false);
   }
 
@@ -147,6 +157,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (authState.status == AuthStatus.needsVerification) {
       return _buildVerificationScaffold(context, authState, l10n);
+    }
+
+    if (authState.status == AuthStatus.needsTwoFactor) {
+      return _buildTwoFactorScaffold(context, authState, l10n);
     }
 
     if (_forgotPasswordStep == _ForgotPasswordStep.requestCode) {
@@ -342,6 +356,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: _isSubmitting
                         ? null
                         : () => ref.read(authControllerProvider.notifier).cancelVerification(),
+                    child: Text(l10n.verifyEmailBackToSignIn),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTwoFactorScaffold(
+    BuildContext context,
+    AuthState authState,
+    AppLocalizations l10n,
+  ) {
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.twoFactorLoginTitle, style: Theme.of(context).textTheme.headlineSmall),
+                  const SizedBox(height: 12),
+                  Text(
+                    _useBackupCode ? l10n.twoFactorBackupSubtitle : l10n.twoFactorLoginSubtitle,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _codeController,
+                    decoration: InputDecoration(
+                      labelText: _useBackupCode ? l10n.fieldBackupCode : l10n.fieldTwoFactorCode,
+                    ),
+                    keyboardType: _useBackupCode ? TextInputType.text : TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    maxLength: _useBackupCode ? 10 : 6,
+                    onFieldSubmitted: (_) {
+                      if (!_isSubmitting) _submitTwoFactor();
+                    },
+                    validator: (value) {
+                      final trimmed = value?.trim() ?? '';
+                      final validLength = _useBackupCode
+                          ? trimmed.length >= 6 && trimmed.length <= 10
+                          : trimmed.length == 6;
+                      return validLength ? null : l10n.validatorTwoFactorCodeInvalid;
+                    },
+                  ),
+                  if (authState.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        authState.errorMessage!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
+                  FilledButton(
+                    onPressed: _isSubmitting ? null : _submitTwoFactor,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.verifyEmailButton),
+                  ),
+                  TextButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => setState(() {
+                              _useBackupCode = !_useBackupCode;
+                              _codeController.clear();
+                            }),
+                    child: Text(_useBackupCode
+                        ? l10n.twoFactorUseAuthenticatorApp
+                        : l10n.twoFactorUseBackupCode),
+                  ),
+                  TextButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => ref.read(authControllerProvider.notifier).cancelTwoFactor(),
                     child: Text(l10n.verifyEmailBackToSignIn),
                   ),
                 ],

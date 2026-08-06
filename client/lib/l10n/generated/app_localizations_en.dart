@@ -24,6 +24,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionGo => 'Go';
 
   @override
+  String get actionEnable => 'Enable';
+
+  @override
+  String get actionDisable => 'Disable';
+
+  @override
+  String get actionDone => 'Done';
+
+  @override
   String get loginCreateAccount => 'Create account';
 
   @override
@@ -107,6 +116,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyEmailBackToSignIn => 'Back to sign in';
+
+  @override
+  String get twoFactorLoginTitle => 'Two-factor authentication';
+
+  @override
+  String get twoFactorLoginSubtitle =>
+      'Enter the 6-digit code from your authenticator app';
+
+  @override
+  String get twoFactorBackupSubtitle => 'Enter one of your backup codes';
+
+  @override
+  String get fieldTwoFactorCode => 'Authentication code';
+
+  @override
+  String get fieldBackupCode => 'Backup code';
+
+  @override
+  String get validatorTwoFactorCodeInvalid => 'Enter a valid code';
+
+  @override
+  String get twoFactorUseBackupCode => 'Use a backup code instead';
+
+  @override
+  String get twoFactorUseAuthenticatorApp =>
+      'Use your authenticator app instead';
 
   @override
   String get loginForgotPassword => 'Forgot password?';
@@ -629,6 +664,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emailChangedMessage => 'Email changed';
+
+  @override
+  String get sectionTwoFactorAuth => 'Two-factor authentication';
+
+  @override
+  String get twoFactorStatusEnabled => 'Enabled';
+
+  @override
+  String get twoFactorStatusDisabled => 'Disabled';
+
+  @override
+  String get twoFactorSectionSubtitle =>
+      'Add an extra layer of security with an authenticator app';
+
+  @override
+  String get twoFactorSetupDialogTitle => 'Set up authenticator app';
+
+  @override
+  String get twoFactorSetupInstructions =>
+      'Scan this QR code with your authenticator app, or enter the code manually.';
+
+  @override
+  String get twoFactorBackupCodesDialogTitle => 'Save your backup codes';
+
+  @override
+  String get twoFactorBackupCodesWarning =>
+      'Each code can be used once if you lose access to your authenticator app. Store them somewhere safe — they won\'t be shown again.';
+
+  @override
+  String get twoFactorBackupCodesConfirmCheckbox =>
+      'I\'ve saved these codes somewhere safe';
+
+  @override
+  String get twoFactorDisableDialogTitle => 'Disable two-factor authentication';
 
   @override
   String get sectionDangerZone => 'Danger zone';

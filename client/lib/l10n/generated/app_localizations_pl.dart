@@ -24,6 +24,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get actionGo => 'Przejdź';
 
   @override
+  String get actionEnable => 'Włącz';
+
+  @override
+  String get actionDisable => 'Wyłącz';
+
+  @override
+  String get actionDone => 'Gotowe';
+
+  @override
   String get loginCreateAccount => 'Utwórz konto';
 
   @override
@@ -107,6 +116,32 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get verifyEmailBackToSignIn => 'Wróć do logowania';
+
+  @override
+  String get twoFactorLoginTitle => 'Uwierzytelnianie dwuskładnikowe';
+
+  @override
+  String get twoFactorLoginSubtitle =>
+      'Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej';
+
+  @override
+  String get twoFactorBackupSubtitle => 'Wpisz jeden z kodów zapasowych';
+
+  @override
+  String get fieldTwoFactorCode => 'Kod uwierzytelniający';
+
+  @override
+  String get fieldBackupCode => 'Kod zapasowy';
+
+  @override
+  String get validatorTwoFactorCodeInvalid => 'Wpisz prawidłowy kod';
+
+  @override
+  String get twoFactorUseBackupCode => 'Użyj kodu zapasowego';
+
+  @override
+  String get twoFactorUseAuthenticatorApp =>
+      'Użyj aplikacji uwierzytelniającej';
 
   @override
   String get loginForgotPassword => 'Nie pamiętasz hasła?';
@@ -644,6 +679,42 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get emailChangedMessage => 'Adres e-mail zmieniony';
+
+  @override
+  String get sectionTwoFactorAuth => 'Uwierzytelnianie dwuskładnikowe';
+
+  @override
+  String get twoFactorStatusEnabled => 'Włączone';
+
+  @override
+  String get twoFactorStatusDisabled => 'Wyłączone';
+
+  @override
+  String get twoFactorSectionSubtitle =>
+      'Dodaj dodatkową warstwę bezpieczeństwa dzięki aplikacji uwierzytelniającej';
+
+  @override
+  String get twoFactorSetupDialogTitle =>
+      'Skonfiguruj aplikację uwierzytelniającą';
+
+  @override
+  String get twoFactorSetupInstructions =>
+      'Zeskanuj ten kod QR aplikacją uwierzytelniającą lub wprowadź kod ręcznie.';
+
+  @override
+  String get twoFactorBackupCodesDialogTitle => 'Zapisz swoje kody zapasowe';
+
+  @override
+  String get twoFactorBackupCodesWarning =>
+      'Każdego kodu można użyć raz, jeśli stracisz dostęp do aplikacji uwierzytelniającej. Przechowuj je w bezpiecznym miejscu — nie zostaną ponownie wyświetlone.';
+
+  @override
+  String get twoFactorBackupCodesConfirmCheckbox =>
+      'Zapisałem/-am te kody w bezpiecznym miejscu';
+
+  @override
+  String get twoFactorDisableDialogTitle =>
+      'Wyłącz uwierzytelnianie dwuskładnikowe';
 
   @override
   String get sectionDangerZone => 'Strefa niebezpieczna';

@@ -11,6 +11,8 @@ import { randomBytes, randomInt, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
+import { DisableTwoFactorDto } from './dto/disable-two-factor.dto';
+import { EnableTwoFactorDto } from './dto/enable-two-factor.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { MailerService } from './mailer.service';
@@ -20,21 +22,43 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdateUsernameDto } from './dto/update-username.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
+import {
+  decryptTotpSecret,
+  encryptTotpSecret,
+  loadTotpEncryptionKey,
+} from './totp-crypto.util';
+import {
+  buildOtpauthUrl,
+  generateBackupCodes,
+  generateTotpSecretBase32,
+  verifyTotpCode,
+} from './totp.util';
 
 const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_BYTES = 48;
 const VERIFICATION_CODE_TTL_MINUTES = 15;
 const VERIFICATION_RESEND_COOLDOWN_SECONDS = 60;
 const MAX_VERIFICATION_ATTEMPTS = 5;
+const PENDING_TWO_FACTOR_TOKEN_BYTES = 32;
+const PENDING_TWO_FACTOR_TTL_MINUTES = 5;
 
 @Injectable()
 export class AuthService {
+  // Resolved once at construction (i.e. app startup, since Nest
+  // instantiates providers eagerly) rather than lazily on first use, so a
+  // misconfigured TOTP_ENCRYPTION_KEY fails immediately and loudly instead
+  // of surfacing later as a confusing decrypt error mid-login.
+  private readonly totpEncryptionKey: Buffer;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly mailer: MailerService,
-  ) {}
+  ) {
+    this.totpEncryptionKey = loadTotpEncryptionKey(this.config);
+  }
 
   // No tokens are returned here — the account exists but is unusable (see
   // login()) until the emailed code is redeemed via verifyEmail(), so there's
@@ -94,7 +118,217 @@ export class AuthService {
       });
     }
 
+    if (user.twoFactorEnabled) {
+      const twoFactorToken = await this.issuePendingTwoFactorLogin(
+        user.id,
+        user.twoFactorMethod ?? 'totp',
+      );
+      throw new ForbiddenException({
+        code: 'TOTP_REQUIRED',
+        message:
+          'Enter your two-factor authentication code to finish signing in',
+        twoFactorToken,
+      });
+    }
+
     return this.buildAuthResponse(user);
+  }
+
+  // Completes a login that was paused by the TOTP_REQUIRED check above —
+  // same bearer-token-plus-attempts-cap shape as verifyEmail()'s pending
+  // code, but against an opaque token instead of a userId, since the client
+  // has no other handle on "which login attempt" at this point.
+  async verifyTwoFactorLogin(dto: VerifyTwoFactorDto) {
+    const pending = await this.prisma.pendingTwoFactorLogin.findUnique({
+      where: { tokenHash: this.hashToken(dto.twoFactorToken) },
+      include: { user: true },
+    });
+    if (!pending || pending.expiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedException(
+        'Code is invalid or expired — sign in again',
+      );
+    }
+    if (pending.attempts >= MAX_VERIFICATION_ATTEMPTS) {
+      throw new UnauthorizedException('Too many attempts — sign in again');
+    }
+
+    const codeMatches = await this.verifyTotpOrBackupCode(
+      pending.user,
+      dto.code,
+    );
+    if (!codeMatches) {
+      await this.prisma.pendingTwoFactorLogin.update({
+        where: { id: pending.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException('Incorrect code');
+    }
+
+    await this.prisma.pendingTwoFactorLogin.delete({
+      where: { id: pending.id },
+    });
+    return this.buildAuthResponse(pending.user);
+  }
+
+  // Generates (or regenerates, if setup was started before but never
+  // confirmed) a pending TOTP secret for the user — not enabled until
+  // enableTotp() confirms it with a live code. Storing the secret already at
+  // this point (rather than only after confirmation) mirrors
+  // issueVerificationCode()'s upsert-and-replace semantics: re-requesting
+  // just overwrites whatever was pending.
+  async setupTotp(
+    userId: string,
+  ): Promise<{ secret: string; otpauthUrl: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    if (user.twoFactorEnabled) {
+      throw new ConflictException(
+        'Two-factor authentication is already enabled',
+      );
+    }
+
+    const secret = generateTotpSecretBase32();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorSecret: encryptTotpSecret(secret, this.totpEncryptionKey),
+      },
+    });
+
+    return { secret, otpauthUrl: buildOtpauthUrl(user.email, secret) };
+  }
+
+  // Confirms a pending setupTotp() secret with a live code, flips 2FA on,
+  // and issues a fresh set of backup codes (any codes from a previous
+  // enable/disable cycle are cleared first).
+  async enableTotp(
+    userId: string,
+    dto: EnableTwoFactorDto,
+  ): Promise<{ backupCodes: string[] }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    if (user.twoFactorEnabled) {
+      throw new ConflictException(
+        'Two-factor authentication is already enabled',
+      );
+    }
+    if (!user.twoFactorSecret) {
+      throw new UnauthorizedException(
+        'Start setup before enabling two-factor authentication',
+      );
+    }
+
+    const secret = decryptTotpSecret(
+      user.twoFactorSecret,
+      this.totpEncryptionKey,
+    );
+    if (!verifyTotpCode(secret, dto.code)) {
+      throw new UnauthorizedException('Incorrect code');
+    }
+
+    const backupCodes = generateBackupCodes();
+    const hashedCodes = await Promise.all(
+      backupCodes.map((code) => bcrypt.hash(code, SALT_ROUNDS)),
+    );
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { twoFactorEnabled: true, twoFactorMethod: 'totp' },
+      }),
+      this.prisma.twoFactorBackupCode.deleteMany({ where: { userId } }),
+      this.prisma.twoFactorBackupCode.createMany({
+        data: hashedCodes.map((codeHash) => ({ userId, codeHash })),
+      }),
+    ]);
+
+    return { backupCodes };
+  }
+
+  // Requires both the current password AND a live code (TOTP or backup) —
+  // losing either your authenticator app or your password shouldn't alone
+  // be enough to turn off the other factor.
+  async disableTotp(userId: string, dto: DisableTwoFactorDto): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+    if (!user.twoFactorEnabled) {
+      throw new ConflictException('Two-factor authentication is not enabled');
+    }
+    if (!(await this.verifyTotpOrBackupCode(user, dto.code))) {
+      throw new UnauthorizedException('Incorrect code');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: false,
+          twoFactorMethod: null,
+          twoFactorSecret: null,
+        },
+      }),
+      this.prisma.twoFactorBackupCode.deleteMany({ where: { userId } }),
+      this.prisma.pendingTwoFactorLogin.deleteMany({ where: { userId } }),
+    ]);
+  }
+
+  // Shared by verifyTwoFactorLogin() (completing a login) and disableTotp()
+  // (which accepts a backup code too, since losing your authenticator app is
+  // exactly the scenario backup codes exist for). Checks the live TOTP code
+  // first since that's the common case; falls back to scanning unused
+  // backup codes only if that fails.
+  private async verifyTotpOrBackupCode(
+    user: { id: string; twoFactorSecret: string | null },
+    code: string,
+  ): Promise<boolean> {
+    if (user.twoFactorSecret) {
+      const secret = decryptTotpSecret(
+        user.twoFactorSecret,
+        this.totpEncryptionKey,
+      );
+      if (verifyTotpCode(secret, code)) return true;
+    }
+
+    const unusedCodes = await this.prisma.twoFactorBackupCode.findMany({
+      where: { userId: user.id, usedAt: null },
+    });
+    for (const backup of unusedCodes) {
+      if (await bcrypt.compare(code, backup.codeHash)) {
+        await this.prisma.twoFactorBackupCode.update({
+          where: { id: backup.id },
+          data: { usedAt: new Date() },
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async issuePendingTwoFactorLogin(
+    userId: string,
+    method: string,
+  ): Promise<string> {
+    const raw = randomBytes(PENDING_TWO_FACTOR_TOKEN_BYTES).toString('hex');
+    const expiresAt = new Date(
+      Date.now() + PENDING_TWO_FACTOR_TTL_MINUTES * 60 * 1000,
+    );
+    await this.prisma.pendingTwoFactorLogin.create({
+      data: { userId, method, tokenHash: this.hashToken(raw), expiresAt },
+    });
+    return raw;
   }
 
   // Success logs the user in immediately (same shape as login()/register()
@@ -285,6 +519,7 @@ export class AuthService {
       username: user.username,
       timezone: user.timezone,
       emailVerified: user.emailVerified,
+      twoFactorEnabled: user.twoFactorEnabled,
     };
   }
 
@@ -428,6 +663,8 @@ export class AuthService {
       this.prisma.refreshToken.deleteMany({ where: { userId } }),
       this.prisma.emailVerificationCode.deleteMany({ where: { userId } }),
       this.prisma.passwordResetCode.deleteMany({ where: { userId } }),
+      this.prisma.twoFactorBackupCode.deleteMany({ where: { userId } }),
+      this.prisma.pendingTwoFactorLogin.deleteMany({ where: { userId } }),
       this.prisma.oAuthIntegration.deleteMany({ where: { userId } }),
       this.prisma.friendship.deleteMany({
         where: { OR: [{ requesterId: userId }, { addresseeId: userId }] },
@@ -455,6 +692,9 @@ export class AuthService {
           passwordHash: randomBytes(32).toString('hex'),
           emailVerified: false,
           timezone: null,
+          twoFactorEnabled: false,
+          twoFactorMethod: null,
+          twoFactorSecret: null,
           deletedAt: new Date(),
         },
       }),

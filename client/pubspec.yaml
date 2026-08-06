@@ -81,6 +81,9 @@ dependencies:
   # Microphone capture for assistant voice commands (Windows via MediaFoundation)
   record: ^7.1.1
 
+  # Renders the otpauth:// provisioning URI as a scannable QR code for TOTP setup
+  qr_flutter: ^4.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

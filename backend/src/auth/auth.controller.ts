@@ -14,6 +14,8 @@ import {
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
+import { DisableTwoFactorDto } from './dto/disable-two-factor.dto';
+import { EnableTwoFactorDto } from './dto/enable-two-factor.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
@@ -25,6 +27,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdateUsernameDto } from './dto/update-username.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -63,6 +66,38 @@ export class AuthController {
   @Post('refresh')
   refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refresh(dto.refreshToken);
+  }
+
+  // Completes a login that was paused by a TOTP_REQUIRED response from
+  // POST /login — no guard, since the caller doesn't have a JWT yet.
+  @Post('2fa/verify')
+  verifyTwoFactor(@Body() dto: VerifyTwoFactorDto) {
+    return this.authService.verifyTwoFactorLogin(dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('2fa/totp/setup')
+  setupTotp(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.setupTotp(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('2fa/totp/enable')
+  enableTotp(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: EnableTwoFactorDto,
+  ) {
+    return this.authService.enableTotp(user.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('2fa/totp/disable')
+  async disableTotp(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DisableTwoFactorDto,
+  ) {
+    await this.authService.disableTotp(user.id, dto);
+    return {};
   }
 
   @Post('logout')

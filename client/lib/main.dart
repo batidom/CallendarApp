@@ -114,6 +114,7 @@ class CalendarApp extends ConsumerWidget {
         AuthStatus.unknown => const Scaffold(body: Center(child: CircularProgressIndicator())),
         AuthStatus.unauthenticated => const LoginScreen(),
         AuthStatus.needsVerification => const LoginScreen(),
+        AuthStatus.needsTwoFactor => const LoginScreen(),
         AuthStatus.authenticated => const CalendarScreen(),
       },
     );
