@@ -139,6 +139,11 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej';
 
   @override
+  String twoFactorEmailSubtitle(String email) {
+    return 'Wysłaliśmy 6-cyfrowy kod na $email';
+  }
+
+  @override
   String get twoFactorBackupSubtitle => 'Wpisz jeden z kodów zapasowych';
 
   @override
@@ -705,7 +710,16 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get twoFactorSectionSubtitle =>
-      'Dodaj dodatkową warstwę bezpieczeństwa dzięki aplikacji uwierzytelniającej';
+      'Dodaj dodatkową warstwę bezpieczeństwa do swojego konta';
+
+  @override
+  String get twoFactorChooseMethodTitle => 'Wybierz metodę';
+
+  @override
+  String get twoFactorMethodAuthenticatorApp => 'Aplikacja uwierzytelniająca';
+
+  @override
+  String get twoFactorMethodEmail => 'Kod e-mail';
 
   @override
   String get twoFactorSetupDialogTitle =>
@@ -716,11 +730,21 @@ class AppLocalizationsPl extends AppLocalizations {
       'Zeskanuj ten kod QR aplikacją uwierzytelniającą lub wprowadź kod ręcznie.';
 
   @override
+  String get twoFactorEmailSetupDialogTitle => 'Skonfiguruj kody e-mail';
+
+  @override
+  String get twoFactorEmailSetupInstructions =>
+      'Wpisz kod, który właśnie wysłaliśmy na Twój e-mail, aby potwierdzić.';
+
+  @override
+  String get twoFactorSendCodeToEmail => 'Wyślij kod na mój e-mail';
+
+  @override
   String get twoFactorBackupCodesDialogTitle => 'Zapisz swoje kody zapasowe';
 
   @override
   String get twoFactorBackupCodesWarning =>
-      'Każdego kodu można użyć raz, jeśli stracisz dostęp do aplikacji uwierzytelniającej. Przechowuj je w bezpiecznym miejscu — nie zostaną ponownie wyświetlone.';
+      'Każdego kodu można użyć raz, jeśli stracisz dostęp do aplikacji uwierzytelniającej lub e-maila. Przechowuj je w bezpiecznym miejscu — nie zostaną ponownie wyświetlone.';
 
   @override
   String get twoFactorBackupCodesConfirmCheckbox =>

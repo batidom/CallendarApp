@@ -95,6 +95,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return null;
   }
 
+  Future<void> _resendTwoFactorCode() async {
+    setState(() => _resendMessage = null);
+    await ref.read(authControllerProvider.notifier).resendTwoFactorCode();
+    if (!mounted) return;
+    setState(() => _resendMessage = AppLocalizations.of(context)!.verifyEmailResendSent);
+  }
+
   Future<void> _submitTwoFactor() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
@@ -372,8 +379,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   TextButton(
                     onPressed: _isSubmitting ? null : _resendCode,
-                    child: Text(_resendMessage ?? l10n.verifyEmailResend),
+                    child: Text(l10n.verifyEmailResend),
                   ),
+                  if (_resendMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        _resendMessage!,
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                      ),
+                    ),
                   TextButton(
                     onPressed: _isSubmitting
                         ? null
@@ -408,7 +423,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(l10n.twoFactorLoginTitle, style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 12),
                   Text(
-                    _useBackupCode ? l10n.twoFactorBackupSubtitle : l10n.twoFactorLoginSubtitle,
+                    _useBackupCode
+                        ? l10n.twoFactorBackupSubtitle
+                        : authState.pendingTwoFactorMethod == 'email_otp'
+                            ? l10n.twoFactorEmailSubtitle(authState.pendingTwoFactorEmail ?? '')
+                            : l10n.twoFactorLoginSubtitle,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -449,6 +468,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           )
                         : Text(l10n.verifyEmailButton),
                   ),
+                  if (authState.pendingTwoFactorMethod == 'email_otp' && !_useBackupCode) ...[
+                    TextButton(
+                      onPressed: _isSubmitting ? null : _resendTwoFactorCode,
+                      child: Text(l10n.verifyEmailResend),
+                    ),
+                    if (_resendMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          _resendMessage!,
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                        ),
+                      ),
+                  ],
                   TextButton(
                     onPressed: _isSubmitting
                         ? null

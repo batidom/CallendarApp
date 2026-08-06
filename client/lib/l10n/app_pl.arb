@@ -48,6 +48,10 @@
 
   "twoFactorLoginTitle": "Uwierzytelnianie dwuskładnikowe",
   "twoFactorLoginSubtitle": "Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej",
+  "twoFactorEmailSubtitle": "Wysłaliśmy 6-cyfrowy kod na {email}",
+  "@twoFactorEmailSubtitle": {
+    "placeholders": { "email": { "type": "String" } }
+  },
   "twoFactorBackupSubtitle": "Wpisz jeden z kodów zapasowych",
   "fieldTwoFactorCode": "Kod uwierzytelniający",
   "fieldBackupCode": "Kod zapasowy",
@@ -262,11 +266,17 @@
   "sectionTwoFactorAuth": "Uwierzytelnianie dwuskładnikowe",
   "twoFactorStatusEnabled": "Włączone",
   "twoFactorStatusDisabled": "Wyłączone",
-  "twoFactorSectionSubtitle": "Dodaj dodatkową warstwę bezpieczeństwa dzięki aplikacji uwierzytelniającej",
+  "twoFactorSectionSubtitle": "Dodaj dodatkową warstwę bezpieczeństwa do swojego konta",
+  "twoFactorChooseMethodTitle": "Wybierz metodę",
+  "twoFactorMethodAuthenticatorApp": "Aplikacja uwierzytelniająca",
+  "twoFactorMethodEmail": "Kod e-mail",
   "twoFactorSetupDialogTitle": "Skonfiguruj aplikację uwierzytelniającą",
   "twoFactorSetupInstructions": "Zeskanuj ten kod QR aplikacją uwierzytelniającą lub wprowadź kod ręcznie.",
+  "twoFactorEmailSetupDialogTitle": "Skonfiguruj kody e-mail",
+  "twoFactorEmailSetupInstructions": "Wpisz kod, który właśnie wysłaliśmy na Twój e-mail, aby potwierdzić.",
+  "twoFactorSendCodeToEmail": "Wyślij kod na mój e-mail",
   "twoFactorBackupCodesDialogTitle": "Zapisz swoje kody zapasowe",
-  "twoFactorBackupCodesWarning": "Każdego kodu można użyć raz, jeśli stracisz dostęp do aplikacji uwierzytelniającej. Przechowuj je w bezpiecznym miejscu — nie zostaną ponownie wyświetlone.",
+  "twoFactorBackupCodesWarning": "Każdego kodu można użyć raz, jeśli stracisz dostęp do aplikacji uwierzytelniającej lub e-maila. Przechowuj je w bezpiecznym miejscu — nie zostaną ponownie wyświetlone.",
   "twoFactorBackupCodesConfirmCheckbox": "Zapisałem/-am te kody w bezpiecznym miejscu",
   "twoFactorDisableDialogTitle": "Wyłącz uwierzytelnianie dwuskładnikowe",
 

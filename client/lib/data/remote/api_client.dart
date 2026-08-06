@@ -193,8 +193,9 @@ class ApiClient {
         }));
   }
 
-  // Completes a login that was paused by a TOTP_REQUIRED response from
-  // login() above — code is either a 6-digit TOTP code or a backup code.
+  // Completes a login that was paused by a TWO_FACTOR_REQUIRED response
+  // from login() above — code is either a 6-digit code (TOTP or emailed)
+  // or a backup code.
   Future<Map<String, dynamic>> verifyTwoFactor({
     required String twoFactorToken,
     required String code,
@@ -202,6 +203,14 @@ class ApiClient {
     return _request(() => _dio.post('/auth/2fa/verify', data: {
           'twoFactorToken': twoFactorToken,
           'code': code,
+        }));
+  }
+
+  // Re-sends the emailed code for a pending email-OTP login; a no-op for a
+  // pending TOTP login (nothing server-side to resend).
+  Future<Map<String, dynamic>> resendTwoFactor(String twoFactorToken) {
+    return _request(() => _dio.post('/auth/2fa/resend', data: {
+          'twoFactorToken': twoFactorToken,
         }));
   }
 
@@ -213,8 +222,21 @@ class ApiClient {
     return _request(() => _dio.post('/auth/2fa/totp/enable', data: {'code': code}));
   }
 
-  Future<void> disableTotp({required String password, required String code}) {
-    return _request(() => _dio.post('/auth/2fa/totp/disable', data: {
+  // Sends a fresh one-time code to the caller's own email — used both to
+  // confirm enabling the email-OTP method and to get a live code before
+  // disabling it.
+  Future<Map<String, dynamic>> requestEmailTwoFactorCode() {
+    return _request(() => _dio.post('/auth/2fa/email/request-code'));
+  }
+
+  Future<Map<String, dynamic>> enableEmailTwoFactor(String code) {
+    return _request(() => _dio.post('/auth/2fa/email/enable', data: {'code': code}));
+  }
+
+  // Method-agnostic: works for whichever method (TOTP/email) is currently
+  // active, or a backup code either way.
+  Future<void> disableTwoFactor({required String password, required String code}) {
+    return _request(() => _dio.post('/auth/2fa/disable', data: {
           'password': password,
           'code': code,
         }));

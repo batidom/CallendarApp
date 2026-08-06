@@ -119,14 +119,20 @@ export class AuthService {
     }
 
     if (user.twoFactorEnabled) {
+      const method = user.twoFactorMethod ?? 'totp';
+      if (method === 'email_otp') {
+        await this.issueEmailTwoFactorCode(user.id, user.email);
+      }
       const twoFactorToken = await this.issuePendingTwoFactorLogin(
         user.id,
-        user.twoFactorMethod ?? 'totp',
+        method,
       );
       throw new ForbiddenException({
-        code: 'TOTP_REQUIRED',
+        code: 'TWO_FACTOR_REQUIRED',
         message:
           'Enter your two-factor authentication code to finish signing in',
+        method,
+        email: user.email,
         twoFactorToken,
       });
     }
@@ -134,10 +140,10 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
-  // Completes a login that was paused by the TOTP_REQUIRED check above —
-  // same bearer-token-plus-attempts-cap shape as verifyEmail()'s pending
-  // code, but against an opaque token instead of a userId, since the client
-  // has no other handle on "which login attempt" at this point.
+  // Completes a login that was paused by the TWO_FACTOR_REQUIRED check
+  // above — same bearer-token-plus-attempts-cap shape as verifyEmail()'s
+  // pending code, but against an opaque token instead of a userId, since
+  // the client has no other handle on "which login attempt" at this point.
   async verifyTwoFactorLogin(dto: VerifyTwoFactorDto) {
     const pending = await this.prisma.pendingTwoFactorLogin.findUnique({
       where: { tokenHash: this.hashToken(dto.twoFactorToken) },
@@ -152,8 +158,9 @@ export class AuthService {
       throw new UnauthorizedException('Too many attempts — sign in again');
     }
 
-    const codeMatches = await this.verifyTotpOrBackupCode(
+    const codeMatches = await this.verifyTwoFactorCode(
       pending.user,
+      pending.method,
       dto.code,
     );
     if (!codeMatches) {
@@ -168,6 +175,40 @@ export class AuthService {
       where: { id: pending.id },
     });
     return this.buildAuthResponse(pending.user);
+  }
+
+  // Re-sends the emailed login code for a pending email-OTP login (mirrors
+  // resendVerification's cooldown check) — a no-op for a TOTP login, since
+  // there's nothing server-side to resend for an authenticator-app code.
+  async resendTwoFactorLoginCode(dto: {
+    twoFactorToken: string;
+  }): Promise<{ email: string }> {
+    const pending = await this.prisma.pendingTwoFactorLogin.findUnique({
+      where: { tokenHash: this.hashToken(dto.twoFactorToken) },
+      include: { user: true },
+    });
+    if (!pending || pending.expiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedException(
+        'Code is invalid or expired — sign in again',
+      );
+    }
+    if (pending.method !== 'email_otp') {
+      return { email: pending.user.email };
+    }
+
+    const existing = await this.prisma.emailTwoFactorCode.findUnique({
+      where: { userId: pending.userId },
+    });
+    const cooldownRemainingMs =
+      existing != null
+        ? existing.createdAt.getTime() +
+          VERIFICATION_RESEND_COOLDOWN_SECONDS * 1000 -
+          Date.now()
+        : 0;
+    if (cooldownRemainingMs <= 0) {
+      await this.issueEmailTwoFactorCode(pending.userId, pending.user.email);
+    }
+    return { email: pending.user.email };
   }
 
   // Generates (or regenerates, if setup was started before but never
@@ -249,10 +290,66 @@ export class AuthService {
     return { backupCodes };
   }
 
-  // Requires both the current password AND a live code (TOTP or backup) —
-  // losing either your authenticator app or your password shouldn't alone
-  // be enough to turn off the other factor.
-  async disableTotp(userId: string, dto: DisableTwoFactorDto): Promise<void> {
+  // Sends (or re-sends) a fresh one-time code to the caller's own verified
+  // email — used both to confirm enabling the email-OTP method and, for an
+  // account that already uses it, to get a live code before disabling. No
+  // enabled/disabled guard here: it's authenticated and throttled, and
+  // sending an unused code in the "wrong" state is harmless.
+  async requestEmailTwoFactorCode(userId: string): Promise<{ email: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    await this.issueEmailTwoFactorCode(userId, user.email);
+    return { email: user.email };
+  }
+
+  // Confirms a pending requestEmailTwoFactorCode() code, flips 2FA on with
+  // method 'email_otp', and issues a fresh set of backup codes — mirrors
+  // enableTotp()'s shape exactly, just against a different code source.
+  async enableEmailTwoFactor(
+    userId: string,
+    dto: EnableTwoFactorDto,
+  ): Promise<{ backupCodes: string[] }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    if (user.twoFactorEnabled) {
+      throw new ConflictException(
+        'Two-factor authentication is already enabled',
+      );
+    }
+    if (!(await this.verifyEmailTwoFactorCode(userId, dto.code))) {
+      throw new UnauthorizedException('Incorrect code');
+    }
+
+    const backupCodes = generateBackupCodes();
+    const hashedCodes = await Promise.all(
+      backupCodes.map((code) => bcrypt.hash(code, SALT_ROUNDS)),
+    );
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { twoFactorEnabled: true, twoFactorMethod: 'email_otp' },
+      }),
+      this.prisma.twoFactorBackupCode.deleteMany({ where: { userId } }),
+      this.prisma.twoFactorBackupCode.createMany({
+        data: hashedCodes.map((codeHash) => ({ userId, codeHash })),
+      }),
+    ]);
+
+    return { backupCodes };
+  }
+
+  // Requires both the current password AND a live code (from whichever
+  // method is active, or a backup code) — losing either your second factor
+  // or your password shouldn't alone be enough to turn off the other.
+  async disableTwoFactor(
+    userId: string,
+    dto: DisableTwoFactorDto,
+  ): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -267,7 +364,8 @@ export class AuthService {
     if (!user.twoFactorEnabled) {
       throw new ConflictException('Two-factor authentication is not enabled');
     }
-    if (!(await this.verifyTotpOrBackupCode(user, dto.code))) {
+    const method = user.twoFactorMethod ?? 'totp';
+    if (!(await this.verifyTwoFactorCode(user, method, dto.code))) {
       throw new UnauthorizedException('Incorrect code');
     }
 
@@ -282,28 +380,37 @@ export class AuthService {
       }),
       this.prisma.twoFactorBackupCode.deleteMany({ where: { userId } }),
       this.prisma.pendingTwoFactorLogin.deleteMany({ where: { userId } }),
+      this.prisma.emailTwoFactorCode.deleteMany({ where: { userId } }),
     ]);
   }
 
-  // Shared by verifyTwoFactorLogin() (completing a login) and disableTotp()
-  // (which accepts a backup code too, since losing your authenticator app is
-  // exactly the scenario backup codes exist for). Checks the live TOTP code
-  // first since that's the common case; falls back to scanning unused
-  // backup codes only if that fails.
-  private async verifyTotpOrBackupCode(
+  // Shared by verifyTwoFactorLogin() (completing a login) and
+  // disableTwoFactor() — checks the live code for whichever method is
+  // active, falling back to scanning unused backup codes (which work
+  // regardless of method) only if that fails.
+  private async verifyTwoFactorCode(
     user: { id: string; twoFactorSecret: string | null },
+    method: string,
     code: string,
   ): Promise<boolean> {
-    if (user.twoFactorSecret) {
+    if (method === 'email_otp') {
+      if (await this.verifyEmailTwoFactorCode(user.id, code)) return true;
+    } else if (user.twoFactorSecret) {
       const secret = decryptTotpSecret(
         user.twoFactorSecret,
         this.totpEncryptionKey,
       );
       if (verifyTotpCode(secret, code)) return true;
     }
+    return this.checkBackupCode(user.id, code);
+  }
 
+  private async checkBackupCode(
+    userId: string,
+    code: string,
+  ): Promise<boolean> {
     const unusedCodes = await this.prisma.twoFactorBackupCode.findMany({
-      where: { userId: user.id, usedAt: null },
+      where: { userId, usedAt: null },
     });
     for (const backup of unusedCodes) {
       if (await bcrypt.compare(code, backup.codeHash)) {
@@ -315,6 +422,39 @@ export class AuthService {
       }
     }
     return false;
+  }
+
+  // Same shape as issueVerificationCode() — a fresh request just overwrites
+  // whatever code was pending (setup confirmation, a pre-disable code, or a
+  // login code all funnel through here and share the same single-row-per-
+  // user slot, so requesting a new one anywhere invalidates an older one).
+  private async issueEmailTwoFactorCode(
+    userId: string,
+    email: string,
+  ): Promise<void> {
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const expiresAt = new Date(
+      Date.now() + VERIFICATION_CODE_TTL_MINUTES * 60 * 1000,
+    );
+    await this.prisma.emailTwoFactorCode.upsert({
+      where: { userId },
+      create: { userId, codeHash: this.hashToken(code), expiresAt },
+      update: { codeHash: this.hashToken(code), expiresAt },
+    });
+    await this.mailer.sendTwoFactorCode(email, code);
+  }
+
+  private async verifyEmailTwoFactorCode(
+    userId: string,
+    code: string,
+  ): Promise<boolean> {
+    const pending = await this.prisma.emailTwoFactorCode.findUnique({
+      where: { userId },
+    });
+    if (!pending || pending.expiresAt.getTime() <= Date.now()) return false;
+    if (pending.codeHash !== this.hashToken(code)) return false;
+    await this.prisma.emailTwoFactorCode.delete({ where: { userId } });
+    return true;
   }
 
   private async issuePendingTwoFactorLogin(
@@ -520,6 +660,7 @@ export class AuthService {
       timezone: user.timezone,
       emailVerified: user.emailVerified,
       twoFactorEnabled: user.twoFactorEnabled,
+      twoFactorMethod: user.twoFactorMethod,
     };
   }
 
@@ -665,6 +806,7 @@ export class AuthService {
       this.prisma.passwordResetCode.deleteMany({ where: { userId } }),
       this.prisma.twoFactorBackupCode.deleteMany({ where: { userId } }),
       this.prisma.pendingTwoFactorLogin.deleteMany({ where: { userId } }),
+      this.prisma.emailTwoFactorCode.deleteMany({ where: { userId } }),
       this.prisma.oAuthIntegration.deleteMany({ where: { userId } }),
       this.prisma.friendship.deleteMany({
         where: { OR: [{ requesterId: userId }, { addresseeId: userId }] },

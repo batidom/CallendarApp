@@ -99,12 +99,14 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return profileAsync.when(
       data: (profile) {
         final enabled = profile['twoFactorEnabled'] as bool? ?? false;
+        final method = profile['twoFactorMethod'] as String?;
         return ListTile(
           dense: true,
           title: Text(enabled ? l10n.twoFactorStatusEnabled : l10n.twoFactorStatusDisabled),
-          subtitle: enabled ? null : Text(l10n.twoFactorSectionSubtitle),
+          subtitle: Text(enabled ? _methodLabel(method, l10n) : l10n.twoFactorSectionSubtitle),
           trailing: TextButton(
-            onPressed: () => enabled ? _disableTwoFactor(l10n) : _enableTwoFactor(l10n),
+            onPressed: () =>
+                enabled ? _disableTwoFactor(l10n, method) : _chooseTwoFactorMethod(l10n),
             child: Text(enabled ? l10n.actionDisable : l10n.actionEnable),
           ),
         );
@@ -114,11 +116,47 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     );
   }
 
+  String _methodLabel(String? method, AppLocalizations l10n) =>
+      method == 'email_otp' ? l10n.twoFactorMethodEmail : l10n.twoFactorMethodAuthenticatorApp;
+
+  Future<void> _chooseTwoFactorMethod(AppLocalizations l10n) async {
+    final method = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(l10n.twoFactorChooseMethodTitle),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(dialogContext).pop('totp'),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.qr_code_2_outlined),
+              title: Text(l10n.twoFactorMethodAuthenticatorApp),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(dialogContext).pop('email_otp'),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.email_outlined),
+              title: Text(l10n.twoFactorMethodEmail),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (method == null || !mounted) return;
+    if (method == 'email_otp') {
+      await _enableEmailTwoFactor(l10n);
+    } else {
+      await _enableTotpTwoFactor(l10n);
+    }
+  }
+
   // Three-step flow: setupTotp() gets a secret+QR to scan, a dialog collects
   // the confirmation code to enableTotp() with, and — only on success — a
   // second dialog shows the one-time backup codes, gated behind an explicit
   // "I've saved these" checkbox since they can never be shown again.
-  Future<void> _enableTwoFactor(AppLocalizations l10n) async {
+  Future<void> _enableTotpTwoFactor(AppLocalizations l10n) async {
     Map<String, dynamic> setup;
     try {
       setup = await ref.read(authRepositoryProvider).setupTotp();
@@ -271,11 +309,130 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     );
   }
 
-  Future<void> _disableTwoFactor(AppLocalizations l10n) async {
+  // Same shape as _enableTotpTwoFactor's setup step, minus the QR/secret —
+  // requestEmailTwoFactorCode() already sent the first code by the time
+  // this dialog opens (see _chooseTwoFactorMethod), with a resend link here
+  // in case it takes a moment to arrive.
+  Future<void> _enableEmailTwoFactor(AppLocalizations l10n) async {
+    try {
+      await ref.read(authRepositoryProvider).requestEmailTwoFactorCode();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    final backupCodes = await _showEmailTwoFactorSetupDialog(l10n);
+    if (backupCodes == null || !mounted) return;
+
+    ref.invalidate(myProfileProvider);
+    await _showBackupCodesDialog(l10n, backupCodes);
+  }
+
+  Future<List<String>?> _showEmailTwoFactorSetupDialog(AppLocalizations l10n) async {
+    final codeController = TextEditingController();
+    var isSubmitting = false;
+    String? error;
+    String? resendMessage;
+
+    final backupCodes = await showDialog<List<String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(l10n.twoFactorEmailSetupDialogTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.twoFactorEmailSetupInstructions),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                autofocus: true,
+                enabled: !isSubmitting,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: l10n.fieldTwoFactorCode),
+              ),
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    error!,
+                    style: TextStyle(color: Theme.of(dialogContext).colorScheme.error),
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          await ref.read(authRepositoryProvider).requestEmailTwoFactorCode();
+                          setDialogState(() => resendMessage = l10n.verifyEmailResendSent);
+                        },
+                  child: Text(l10n.verifyEmailResend),
+                ),
+              ),
+              if (resendMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(
+                    resendMessage!,
+                    style: TextStyle(fontSize: 12, color: Theme.of(dialogContext).hintColor),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.actionCancel),
+            ),
+            FilledButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      setDialogState(() {
+                        isSubmitting = true;
+                        error = null;
+                      });
+                      try {
+                        final codes = await ref
+                            .read(authRepositoryProvider)
+                            .enableEmailTwoFactor(codeController.text.trim());
+                        if (dialogContext.mounted) Navigator.of(dialogContext).pop(codes);
+                      } on ApiException catch (e) {
+                        setDialogState(() {
+                          isSubmitting = false;
+                          error = e.message;
+                        });
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.actionSave),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    codeController.dispose();
+    return backupCodes;
+  }
+
+  Future<void> _disableTwoFactor(AppLocalizations l10n, String? method) async {
     final passwordController = TextEditingController();
     final codeController = TextEditingController();
     var isSubmitting = false;
     String? error;
+    String? emailSentMessage;
 
     await showDialog<void>(
       context: context,
@@ -298,6 +455,30 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                 enabled: !isSubmitting,
                 decoration: InputDecoration(labelText: l10n.fieldTwoFactorCode),
               ),
+              if (method == 'email_otp') ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            await ref.read(authRepositoryProvider).requestEmailTwoFactorCode();
+                            setDialogState(
+                              () => emailSentMessage = l10n.verifyEmailResendSent,
+                            );
+                          },
+                    child: Text(l10n.twoFactorSendCodeToEmail),
+                  ),
+                ),
+                if (emailSentMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Text(
+                      emailSentMessage!,
+                      style: TextStyle(fontSize: 12, color: Theme.of(dialogContext).hintColor),
+                    ),
+                  ),
+              ],
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -326,7 +507,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                         error = null;
                       });
                       try {
-                        await ref.read(authRepositoryProvider).disableTotp(
+                        await ref.read(authRepositoryProvider).disableTwoFactor(
                               password: passwordController.text,
                               code: codeController.text.trim(),
                             );

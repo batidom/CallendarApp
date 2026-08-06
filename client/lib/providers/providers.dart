@@ -145,6 +145,8 @@ class AuthState {
     this.errorMessage,
     this.pendingVerificationEmail,
     this.pendingTwoFactorToken,
+    this.pendingTwoFactorMethod,
+    this.pendingTwoFactorEmail,
   });
 
   final AuthStatus status;
@@ -156,9 +158,18 @@ class AuthState {
   final String? pendingVerificationEmail;
 
   /// Set when [status] is [AuthStatus.needsTwoFactor] — the bridge token
-  /// from login()'s 403 TOTP_REQUIRED response, submitted along with the
-  /// user's code to AuthRepository.verifyTwoFactor().
+  /// from login()'s 403 TWO_FACTOR_REQUIRED response, submitted along with
+  /// the user's code to AuthRepository.verifyTwoFactor().
   final String? pendingTwoFactorToken;
+
+  /// Which second factor this login is waiting on ('totp' or 'email_otp')
+  /// — drives whether the code screen shows a "resend" option and what its
+  /// subtitle says.
+  final String? pendingTwoFactorMethod;
+
+  /// The account's email, for display ("We sent a code to x@y.com") when
+  /// [pendingTwoFactorMethod] is 'email_otp'.
+  final String? pendingTwoFactorEmail;
 }
 
 class AuthController extends StateNotifier<AuthState> {
@@ -185,10 +196,12 @@ class AuthController extends StateNotifier<AuthState> {
         );
         return;
       }
-      if (e.statusCode == 403 && e.data?['code'] == 'TOTP_REQUIRED') {
+      if (e.statusCode == 403 && e.data?['code'] == 'TWO_FACTOR_REQUIRED') {
         state = AuthState(
           AuthStatus.needsTwoFactor,
           pendingTwoFactorToken: e.data?['twoFactorToken'] as String?,
+          pendingTwoFactorMethod: e.data?['method'] as String?,
+          pendingTwoFactorEmail: e.data?['email'] as String?,
         );
         return;
       }
@@ -207,8 +220,18 @@ class AuthController extends StateNotifier<AuthState> {
         AuthStatus.needsTwoFactor,
         errorMessage: e.message,
         pendingTwoFactorToken: token,
+        pendingTwoFactorMethod: state.pendingTwoFactorMethod,
+        pendingTwoFactorEmail: state.pendingTwoFactorEmail,
       );
     }
+  }
+
+  /// Re-sends the emailed code for a pending email-OTP login; a no-op
+  /// (server-side) for a pending TOTP login.
+  Future<void> resendTwoFactorCode() async {
+    final token = state.pendingTwoFactorToken;
+    if (token == null) return;
+    await _repository.resendTwoFactor(token);
   }
 
   /// Back out of the two-factor code-entry screen to plain sign-in.

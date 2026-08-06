@@ -63,8 +63,9 @@ class AuthRepository {
     return _apiClient.fetchMyProfile();
   }
 
-  // Completes a login that was paused by AuthController on TOTP_REQUIRED —
-  // same "start a session from the response" shape as login()/verifyEmail().
+  // Completes a login that was paused by AuthController on
+  // TWO_FACTOR_REQUIRED — same "start a session from the response" shape
+  // as login()/verifyEmail().
   Future<void> verifyTwoFactor({
     required String twoFactorToken,
     required String code,
@@ -74,6 +75,10 @@ class AuthRepository {
     await _startSession(data, remember: remember);
   }
 
+  Future<void> resendTwoFactor(String twoFactorToken) {
+    return _apiClient.resendTwoFactor(twoFactorToken);
+  }
+
   Future<Map<String, dynamic>> setupTotp() => _apiClient.setupTotp();
 
   Future<List<String>> enableTotp(String code) async {
@@ -81,8 +86,17 @@ class AuthRepository {
     return (data['backupCodes'] as List).cast<String>();
   }
 
-  Future<void> disableTotp({required String password, required String code}) {
-    return _apiClient.disableTotp(password: password, code: code);
+  Future<void> requestEmailTwoFactorCode() async {
+    await _apiClient.requestEmailTwoFactorCode();
+  }
+
+  Future<List<String>> enableEmailTwoFactor(String code) async {
+    final data = await _apiClient.enableEmailTwoFactor(code);
+    return (data['backupCodes'] as List).cast<String>();
+  }
+
+  Future<void> disableTwoFactor({required String password, required String code}) {
+    return _apiClient.disableTwoFactor(password: password, code: code);
   }
 
   Future<void> updateUsername({required String newUsername, required String password}) {

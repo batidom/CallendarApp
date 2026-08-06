@@ -344,6 +344,12 @@ abstract class AppLocalizations {
   /// **'Enter the 6-digit code from your authenticator app'**
   String get twoFactorLoginSubtitle;
 
+  /// No description provided for @twoFactorEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}'**
+  String twoFactorEmailSubtitle(String email);
+
   /// No description provided for @twoFactorBackupSubtitle.
   ///
   /// In en, this message translates to:
@@ -1219,8 +1225,26 @@ abstract class AppLocalizations {
   /// No description provided for @twoFactorSectionSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Add an extra layer of security with an authenticator app'**
+  /// **'Add an extra layer of security to your account'**
   String get twoFactorSectionSubtitle;
+
+  /// No description provided for @twoFactorChooseMethodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a method'**
+  String get twoFactorChooseMethodTitle;
+
+  /// No description provided for @twoFactorMethodAuthenticatorApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticator app'**
+  String get twoFactorMethodAuthenticatorApp;
+
+  /// No description provided for @twoFactorMethodEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email code'**
+  String get twoFactorMethodEmail;
 
   /// No description provided for @twoFactorSetupDialogTitle.
   ///
@@ -1234,6 +1258,24 @@ abstract class AppLocalizations {
   /// **'Scan this QR code with your authenticator app, or enter the code manually.'**
   String get twoFactorSetupInstructions;
 
+  /// No description provided for @twoFactorEmailSetupDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up email codes'**
+  String get twoFactorEmailSetupDialogTitle;
+
+  /// No description provided for @twoFactorEmailSetupInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code we just emailed you to confirm.'**
+  String get twoFactorEmailSetupInstructions;
+
+  /// No description provided for @twoFactorSendCodeToEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code to my email'**
+  String get twoFactorSendCodeToEmail;
+
   /// No description provided for @twoFactorBackupCodesDialogTitle.
   ///
   /// In en, this message translates to:
@@ -1243,7 +1285,7 @@ abstract class AppLocalizations {
   /// No description provided for @twoFactorBackupCodesWarning.
   ///
   /// In en, this message translates to:
-  /// **'Each code can be used once if you lose access to your authenticator app. Store them somewhere safe — they won\'t be shown again.'**
+  /// **'Each code can be used once if you lose access to your authenticator app or email. Store them somewhere safe — they won\'t be shown again.'**
   String get twoFactorBackupCodesWarning;
 
   /// No description provided for @twoFactorBackupCodesConfirmCheckbox.

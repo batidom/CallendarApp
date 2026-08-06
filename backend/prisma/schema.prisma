@@ -16,10 +16,9 @@ model User {
   username     String   @unique
   timezone     String?
   emailVerified Boolean @default(false) @map("email_verified")
-  // Two-factor authentication. twoFactorMethod is a discriminator ('totp'
-  // today, room for e.g. 'email_otp' later) so a second method doesn't need
-  // a schema change — twoFactorSecret alone can't tell them apart once more
-  // than one method exists. twoFactorSecret is AES-256-GCM encrypted at rest
+  // Two-factor authentication. twoFactorMethod is a discriminator ('totp' or
+  // 'email_otp') so twoFactorSecret alone (only ever set for 'totp') can't
+  // tell the two apart. twoFactorSecret is AES-256-GCM encrypted at rest
   // (see totp-crypto.util.ts) since, unlike a password, it must be
   // recoverable in its original form to compute a comparison code.
   twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
@@ -51,6 +50,7 @@ model User {
   actedNotifications     Notification[] @relation("NotificationActor")
   twoFactorBackupCodes   TwoFactorBackupCode[]
   pendingTwoFactorLogins PendingTwoFactorLogin[]
+  emailTwoFactorCode     EmailTwoFactorCode?
 
   @@map("users")
 }
@@ -198,8 +198,10 @@ model TwoFactorBackupCode {
 // @unique, short-lived, deleted on consume) with EmailVerificationCode's
 // pattern (attempts counter capping brute-force of the 6-digit code). Not
 // unique-per-user: concurrent login attempts from different devices each
-// get their own row. method mirrors User.twoFactorMethod so a future second
-// method can be verified differently here without a schema change.
+// get their own row. method mirrors User.twoFactorMethod at the moment this
+// row was created — for 'totp' the code is checked against the user's
+// stored secret; for 'email_otp' it's checked against EmailTwoFactorCode,
+// which login() (re)issues in lockstep with this row.
 model PendingTwoFactorLogin {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -213,6 +215,29 @@ model PendingTwoFactorLogin {
 
   @@index([userId])
   @@map("pending_two_factor_logins")
+}
+
+// A one-time code emailed to the account's own (already-verified) address,
+// used wherever the email-OTP method needs to prove "you still have access
+// to this inbox right now" — enabling it, disabling it, or completing an
+// email-OTP login (see AuthService.issueEmailTwoFactorCode/
+// verifyEmailTwoFactorCode). Same single-pending-code-per-user shape as
+// EmailVerificationCode/PasswordResetCode (a fresh request just overwrites
+// it), kept as its own table for the same clobbering-isolation reasoning as
+// those two. Unlike its siblings, it has no `attempts` counter of its own —
+// every caller that reaches this table is already behind the IP-based
+// AUTH_THROTTLE (see auth.controller.ts), which didn't exist yet when the
+// older two tables were designed.
+model EmailTwoFactorCode {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_two_factor_codes")
 }
 
 model OAuthIntegration {

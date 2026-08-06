@@ -48,6 +48,10 @@
 
   "twoFactorLoginTitle": "Two-factor authentication",
   "twoFactorLoginSubtitle": "Enter the 6-digit code from your authenticator app",
+  "twoFactorEmailSubtitle": "We sent a 6-digit code to {email}",
+  "@twoFactorEmailSubtitle": {
+    "placeholders": { "email": { "type": "String" } }
+  },
   "twoFactorBackupSubtitle": "Enter one of your backup codes",
   "fieldTwoFactorCode": "Authentication code",
   "fieldBackupCode": "Backup code",
@@ -295,11 +299,17 @@
   "sectionTwoFactorAuth": "Two-factor authentication",
   "twoFactorStatusEnabled": "Enabled",
   "twoFactorStatusDisabled": "Disabled",
-  "twoFactorSectionSubtitle": "Add an extra layer of security with an authenticator app",
+  "twoFactorSectionSubtitle": "Add an extra layer of security to your account",
+  "twoFactorChooseMethodTitle": "Choose a method",
+  "twoFactorMethodAuthenticatorApp": "Authenticator app",
+  "twoFactorMethodEmail": "Email code",
   "twoFactorSetupDialogTitle": "Set up authenticator app",
   "twoFactorSetupInstructions": "Scan this QR code with your authenticator app, or enter the code manually.",
+  "twoFactorEmailSetupDialogTitle": "Set up email codes",
+  "twoFactorEmailSetupInstructions": "Enter the code we just emailed you to confirm.",
+  "twoFactorSendCodeToEmail": "Send code to my email",
   "twoFactorBackupCodesDialogTitle": "Save your backup codes",
-  "twoFactorBackupCodesWarning": "Each code can be used once if you lose access to your authenticator app. Store them somewhere safe — they won't be shown again.",
+  "twoFactorBackupCodesWarning": "Each code can be used once if you lose access to your authenticator app or email. Store them somewhere safe — they won't be shown again.",
   "twoFactorBackupCodesConfirmCheckbox": "I've saved these codes somewhere safe",
   "twoFactorDisableDialogTitle": "Disable two-factor authentication",
 
