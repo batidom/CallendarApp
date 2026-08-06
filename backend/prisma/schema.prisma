@@ -155,14 +155,19 @@ model GroupMember {
 // backend call (sync, assistant chat) once its access token expired, with
 // no way back short of a manual re-login. Only the SHA-256 hash is stored,
 // never the raw token, so a DB read alone can't be replayed as a session.
-// Rotated on every use (old row deleted, new one issued) rather than reused,
-// to limit how long a leaked token stays valid if it's ever stolen.
+// Rotated on every use — but unlike a hard delete, the old row is kept with
+// revokedAt set rather than removed, specifically so AuthService.refresh()
+// can tell "expired/unknown token" (nothing to do) apart from "a token that
+// was already rotated away is being presented again" (a strong signal of
+// theft — a legitimate client always uses the newest token it has), and
+// respond to the latter by revoking every one of that user's sessions.
 model RefreshToken {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
   tokenHash String    @unique @map("token_hash")
   expiresAt DateTime  @map("expires_at") @db.Timestamptz
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
