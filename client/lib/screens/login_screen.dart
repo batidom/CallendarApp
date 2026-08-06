@@ -26,6 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isSubmitting = false;
   bool _keepMeSignedIn = true;
   String? _resendMessage;
+  bool _useBackupCode = false;
 
   _ForgotPasswordStep _forgotPasswordStep = _ForgotPasswordStep.none;
   String? _resetEmail;
@@ -74,6 +75,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref
         .read(authControllerProvider.notifier)
         .verifyEmail(_codeController.text.trim(), remember: _keepMeSignedIn);
+    if (mounted) setState(() => _isSubmitting = false);
+  }
+
+  // Mirrors the backend's PASSWORD_REGEX (register/change-password/
+  // reset-password DTOs) so a weak password is caught before the round
+  // trip instead of only after a 400 comes back.
+  String? _strongPasswordError(String? value, AppLocalizations l10n) {
+    final password = value ?? '';
+    if (password.length < 8) return l10n.validatorPasswordTooShort;
+    if (password.length > 72) return l10n.validatorPasswordTooLong;
+    final hasLower = RegExp(r'[a-z]').hasMatch(password);
+    final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
+    final hasDigit = RegExp(r'\d').hasMatch(password);
+    final hasSymbol = RegExp(r'[^a-zA-Z0-9]').hasMatch(password);
+    if (!hasLower || !hasUpper || !hasDigit || !hasSymbol) {
+      return l10n.validatorPasswordPolicy;
+    }
+    return null;
+  }
+
+  Future<void> _resendTwoFactorCode() async {
+    setState(() => _resendMessage = null);
+    await ref.read(authControllerProvider.notifier).resendTwoFactorCode();
+    if (!mounted) return;
+    setState(() => _resendMessage = AppLocalizations.of(context)!.verifyEmailResendSent);
+  }
+
+  Future<void> _submitTwoFactor() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSubmitting = true);
+    await ref
+        .read(authControllerProvider.notifier)
+        .verifyTwoFactor(_codeController.text.trim(), remember: _keepMeSignedIn);
     if (mounted) setState(() => _isSubmitting = false);
   }
 
@@ -149,6 +183,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return _buildVerificationScaffold(context, authState, l10n);
     }
 
+    if (authState.status == AuthStatus.needsTwoFactor) {
+      return _buildTwoFactorScaffold(context, authState, l10n);
+    }
+
     if (_forgotPasswordStep == _ForgotPasswordStep.requestCode) {
       return _buildForgotPasswordRequestScaffold(context, l10n);
     }
@@ -216,14 +254,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _passwordController,
-                    decoration: InputDecoration(labelText: l10n.fieldPassword),
+                    decoration: InputDecoration(
+                      labelText: l10n.fieldPassword,
+                      helperText: _isRegisterMode ? l10n.passwordRequirementsHint : null,
+                      helperMaxLines: 2,
+                    ),
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) {
                       if (!_isSubmitting) _submit();
                     },
-                    validator: (value) =>
-                        (value == null || value.length < 8) ? l10n.validatorPasswordTooShort : null,
+                    validator: (value) => _isRegisterMode
+                        ? _strongPasswordError(value, l10n)
+                        : (value == null || value.isEmpty) ? l10n.validatorPasswordRequired : null,
                   ),
                   CheckboxListTile(
                     dense: true,
@@ -336,12 +379,124 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   TextButton(
                     onPressed: _isSubmitting ? null : _resendCode,
-                    child: Text(_resendMessage ?? l10n.verifyEmailResend),
+                    child: Text(l10n.verifyEmailResend),
                   ),
+                  if (_resendMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        _resendMessage!,
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                      ),
+                    ),
                   TextButton(
                     onPressed: _isSubmitting
                         ? null
                         : () => ref.read(authControllerProvider.notifier).cancelVerification(),
+                    child: Text(l10n.verifyEmailBackToSignIn),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTwoFactorScaffold(
+    BuildContext context,
+    AuthState authState,
+    AppLocalizations l10n,
+  ) {
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.twoFactorLoginTitle, style: Theme.of(context).textTheme.headlineSmall),
+                  const SizedBox(height: 12),
+                  Text(
+                    _useBackupCode
+                        ? l10n.twoFactorBackupSubtitle
+                        : authState.pendingTwoFactorMethod == 'email_otp'
+                            ? l10n.twoFactorEmailSubtitle(authState.pendingTwoFactorEmail ?? '')
+                            : l10n.twoFactorLoginSubtitle,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _codeController,
+                    decoration: InputDecoration(
+                      labelText: _useBackupCode ? l10n.fieldBackupCode : l10n.fieldTwoFactorCode,
+                    ),
+                    keyboardType: _useBackupCode ? TextInputType.text : TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    maxLength: _useBackupCode ? 10 : 6,
+                    onFieldSubmitted: (_) {
+                      if (!_isSubmitting) _submitTwoFactor();
+                    },
+                    validator: (value) {
+                      final trimmed = value?.trim() ?? '';
+                      final validLength = _useBackupCode
+                          ? trimmed.length >= 6 && trimmed.length <= 10
+                          : trimmed.length == 6;
+                      return validLength ? null : l10n.validatorTwoFactorCodeInvalid;
+                    },
+                  ),
+                  if (authState.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        authState.errorMessage!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
+                  FilledButton(
+                    onPressed: _isSubmitting ? null : _submitTwoFactor,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.verifyEmailButton),
+                  ),
+                  if (authState.pendingTwoFactorMethod == 'email_otp' && !_useBackupCode) ...[
+                    TextButton(
+                      onPressed: _isSubmitting ? null : _resendTwoFactorCode,
+                      child: Text(l10n.verifyEmailResend),
+                    ),
+                    if (_resendMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          _resendMessage!,
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                        ),
+                      ),
+                  ],
+                  TextButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => setState(() {
+                              _useBackupCode = !_useBackupCode;
+                              _codeController.clear();
+                            }),
+                    child: Text(_useBackupCode
+                        ? l10n.twoFactorUseAuthenticatorApp
+                        : l10n.twoFactorUseBackupCode),
+                  ),
+                  TextButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => ref.read(authControllerProvider.notifier).cancelTwoFactor(),
                     child: Text(l10n.verifyEmailBackToSignIn),
                   ),
                 ],
@@ -443,14 +598,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   TextFormField(
                     controller: _newPasswordController,
-                    decoration: InputDecoration(labelText: l10n.fieldNewPassword),
+                    decoration: InputDecoration(
+                      labelText: l10n.fieldNewPassword,
+                      helperText: l10n.passwordRequirementsHint,
+                      helperMaxLines: 2,
+                    ),
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) {
                       if (!_isSubmitting) _submitPasswordReset();
                     },
-                    validator: (value) =>
-                        (value == null || value.length < 8) ? l10n.validatorPasswordTooShort : null,
+                    validator: (value) => _strongPasswordError(value, l10n),
                   ),
                   if (_forgotPasswordError != null)
                     Padding(

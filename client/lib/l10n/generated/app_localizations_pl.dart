@@ -24,6 +24,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get actionGo => 'Przejdź';
 
   @override
+  String get actionEnable => 'Włącz';
+
+  @override
+  String get actionDisable => 'Wyłącz';
+
+  @override
+  String get actionDone => 'Gotowe';
+
+  @override
   String get loginCreateAccount => 'Utwórz konto';
 
   @override
@@ -61,6 +70,20 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get validatorPasswordTooShort => 'Minimum 8 znaków';
+
+  @override
+  String get validatorPasswordTooLong => 'Maksymalnie 72 znaki';
+
+  @override
+  String get validatorPasswordRequired => 'Wpisz hasło';
+
+  @override
+  String get validatorPasswordPolicy =>
+      'Musi zawierać małą literę, wielką literę, cyfrę i symbol';
+
+  @override
+  String get passwordRequirementsHint =>
+      'Minimum 8 znaków, w tym wielka litera, mała litera, cyfra i symbol';
 
   @override
   String get loginRegisterButton => 'Zarejestruj się';
@@ -107,6 +130,37 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get verifyEmailBackToSignIn => 'Wróć do logowania';
+
+  @override
+  String get twoFactorLoginTitle => 'Uwierzytelnianie dwuskładnikowe';
+
+  @override
+  String get twoFactorLoginSubtitle =>
+      'Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej';
+
+  @override
+  String twoFactorEmailSubtitle(String email) {
+    return 'Wysłaliśmy 6-cyfrowy kod na $email';
+  }
+
+  @override
+  String get twoFactorBackupSubtitle => 'Wpisz jeden z kodów zapasowych';
+
+  @override
+  String get fieldTwoFactorCode => 'Kod uwierzytelniający';
+
+  @override
+  String get fieldBackupCode => 'Kod zapasowy';
+
+  @override
+  String get validatorTwoFactorCodeInvalid => 'Wpisz prawidłowy kod';
+
+  @override
+  String get twoFactorUseBackupCode => 'Użyj kodu zapasowego';
+
+  @override
+  String get twoFactorUseAuthenticatorApp =>
+      'Użyj aplikacji uwierzytelniającej';
 
   @override
   String get loginForgotPassword => 'Nie pamiętasz hasła?';
@@ -644,6 +698,65 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get emailChangedMessage => 'Adres e-mail zmieniony';
+
+  @override
+  String get sectionTwoFactorAuth => 'Uwierzytelnianie dwuskładnikowe';
+
+  @override
+  String get twoFactorStatusEnabled => 'Włączone';
+
+  @override
+  String get twoFactorStatusDisabled => 'Wyłączone';
+
+  @override
+  String get twoFactorSectionSubtitle =>
+      'Dodaj dodatkową warstwę bezpieczeństwa do swojego konta';
+
+  @override
+  String get twoFactorChooseMethodTitle => 'Wybierz metodę';
+
+  @override
+  String get twoFactorMethodAuthenticatorApp => 'Aplikacja uwierzytelniająca';
+
+  @override
+  String get twoFactorMethodEmail => 'Kod e-mail';
+
+  @override
+  String get twoFactorSetupDialogTitle =>
+      'Skonfiguruj aplikację uwierzytelniającą';
+
+  @override
+  String get twoFactorSetupInstructions =>
+      'Zeskanuj ten kod QR aplikacją uwierzytelniającą lub wprowadź kod ręcznie.';
+
+  @override
+  String get twoFactorEmailSetupDialogTitle => 'Skonfiguruj kody e-mail';
+
+  @override
+  String get twoFactorEmailSetupInstructions =>
+      'Wpisz kod, który właśnie wysłaliśmy na Twój e-mail, aby potwierdzić.';
+
+  @override
+  String get twoFactorSendCodeToEmail => 'Wyślij kod na mój e-mail';
+
+  @override
+  String get twoFactorBackupCodesDialogTitle => 'Zapisz swoje kody zapasowe';
+
+  @override
+  String get twoFactorBackupCodesWarning =>
+      'Każdego kodu można użyć raz, jeśli stracisz dostęp do aplikacji uwierzytelniającej lub e-maila. Przechowuj je w bezpiecznym miejscu — nie zostaną ponownie wyświetlone.';
+
+  @override
+  String get twoFactorBackupCodesConfirmCheckbox =>
+      'Zapisałem/-am te kody w bezpiecznym miejscu';
+
+  @override
+  String get twoFactorDisableDialogTitle =>
+      'Wyłącz uwierzytelnianie dwuskładnikowe';
+
+  @override
+  String get twoFactorDisableCodeHint =>
+      'Twój bieżący kod lub jeden z kodów zapasowych, jeśli straciłeś/-aś do niego dostęp';
 
   @override
   String get sectionDangerZone => 'Strefa niebezpieczna';

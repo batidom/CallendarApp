@@ -65,6 +65,16 @@ export class MailerService {
     this.logger.log(`Password reset email sent to ${to}`);
   }
 
+  async sendTwoFactorCode(to: string, code: string): Promise<void> {
+    await this.send({
+      to,
+      subject: `${code} is your sign-in code`,
+      text: `Your Calendar App sign-in code is ${code}. It expires in 15 minutes. If you didn't try to sign in, you can ignore this email.`,
+      html: `<p>Your Calendar App sign-in code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p><p>It expires in 15 minutes. If you didn't try to sign in, you can ignore this email.</p>`,
+    });
+    this.logger.log(`Two-factor code email sent to ${to}`);
+  }
+
   private async send(mail: {
     to: string;
     subject: string;

@@ -131,10 +131,23 @@ final launchAtLoginSyncProvider = Provider<void>((ref) {
   });
 });
 
-enum AuthStatus { unknown, authenticated, unauthenticated, needsVerification }
+enum AuthStatus {
+  unknown,
+  authenticated,
+  unauthenticated,
+  needsVerification,
+  needsTwoFactor,
+}
 
 class AuthState {
-  const AuthState(this.status, {this.errorMessage, this.pendingVerificationEmail});
+  const AuthState(
+    this.status, {
+    this.errorMessage,
+    this.pendingVerificationEmail,
+    this.pendingTwoFactorToken,
+    this.pendingTwoFactorMethod,
+    this.pendingTwoFactorEmail,
+  });
 
   final AuthStatus status;
   final String? errorMessage;
@@ -143,6 +156,20 @@ class AuthState {
   /// code screen should submit against (came either from register() or from
   /// login()'s 403 EMAIL_NOT_VERIFIED response).
   final String? pendingVerificationEmail;
+
+  /// Set when [status] is [AuthStatus.needsTwoFactor] — the bridge token
+  /// from login()'s 403 TWO_FACTOR_REQUIRED response, submitted along with
+  /// the user's code to AuthRepository.verifyTwoFactor().
+  final String? pendingTwoFactorToken;
+
+  /// Which second factor this login is waiting on ('totp' or 'email_otp')
+  /// — drives whether the code screen shows a "resend" option and what its
+  /// subtitle says.
+  final String? pendingTwoFactorMethod;
+
+  /// The account's email, for display ("We sent a code to x@y.com") when
+  /// [pendingTwoFactorMethod] is 'email_otp'.
+  final String? pendingTwoFactorEmail;
 }
 
 class AuthController extends StateNotifier<AuthState> {
@@ -169,8 +196,47 @@ class AuthController extends StateNotifier<AuthState> {
         );
         return;
       }
+      if (e.statusCode == 403 && e.data?['code'] == 'TWO_FACTOR_REQUIRED') {
+        state = AuthState(
+          AuthStatus.needsTwoFactor,
+          pendingTwoFactorToken: e.data?['twoFactorToken'] as String?,
+          pendingTwoFactorMethod: e.data?['method'] as String?,
+          pendingTwoFactorEmail: e.data?['email'] as String?,
+        );
+        return;
+      }
       state = AuthState(AuthStatus.unauthenticated, errorMessage: e.message);
     }
+  }
+
+  Future<void> verifyTwoFactor(String code, {bool remember = true}) async {
+    final token = state.pendingTwoFactorToken;
+    if (token == null) return;
+    try {
+      await _repository.verifyTwoFactor(twoFactorToken: token, code: code, remember: remember);
+      state = const AuthState(AuthStatus.authenticated);
+    } on ApiException catch (e) {
+      state = AuthState(
+        AuthStatus.needsTwoFactor,
+        errorMessage: e.message,
+        pendingTwoFactorToken: token,
+        pendingTwoFactorMethod: state.pendingTwoFactorMethod,
+        pendingTwoFactorEmail: state.pendingTwoFactorEmail,
+      );
+    }
+  }
+
+  /// Re-sends the emailed code for a pending email-OTP login; a no-op
+  /// (server-side) for a pending TOTP login.
+  Future<void> resendTwoFactorCode() async {
+    final token = state.pendingTwoFactorToken;
+    if (token == null) return;
+    await _repository.resendTwoFactor(token);
+  }
+
+  /// Back out of the two-factor code-entry screen to plain sign-in.
+  void cancelTwoFactor() {
+    state = const AuthState(AuthStatus.unauthenticated);
   }
 
   Future<void> register({

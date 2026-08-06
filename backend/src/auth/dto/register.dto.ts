@@ -6,6 +6,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { PASSWORD_REGEX, PASSWORD_POLICY_MESSAGE } from '../password-policy';
 
 export class RegisterDto {
   @IsEmail()
@@ -13,6 +14,8 @@ export class RegisterDto {
 
   @IsString()
   @MinLength(8)
+  @MaxLength(72)
+  @Matches(PASSWORD_REGEX, { message: PASSWORD_POLICY_MESSAGE })
   password: string;
 
   @IsString()
