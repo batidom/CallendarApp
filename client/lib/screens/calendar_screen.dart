@@ -10,19 +10,17 @@ import '../data/local/app_database.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../providers/providers.dart';
 import '../services/app_settings.dart';
-import '../services/app_window_controller.dart';
 import '../services/notification_sound_player.dart';
 import '../services/reminder_engine.dart';
 import '../utils/calendar_grid.dart';
 import '../utils/event_colors.dart';
-import '../utils/notification_formatting.dart';
 import '../utils/recurrence.dart';
-import 'assistant_screen.dart';
+import 'calendar_agenda_tile.dart';
+import 'calendar_backlog_chip.dart';
+import 'calendar_top_bar.dart';
 import 'event_form_screen.dart';
-import 'notifications_screen.dart';
+import 'fading_list.dart';
 import 'pending_invite_screen.dart';
-import 'settings_screen.dart';
-import 'social_screen.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -35,7 +33,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
   final _quickAddController = TextEditingController();
-  DateTime _notificationsSeenAt = DateTime.now();
   // Tracks the newest server notification a sound has already played for —
   // null until the first successful fetch, which deliberately doesn't sound
   // off for whatever's already sitting there from before the app opened
@@ -102,7 +99,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final eventsAsync = ref.watch(eventsForVisibleRangeProvider);
     final weekStartDay = ref.watch(settingsControllerProvider).weekStartDay;
     final fired = ref.watch(reminderEngineProvider);
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     // Sounds off for a new server-side notification (friend request,
@@ -128,7 +124,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(theme, l10n),
+            CalendarTopBar(onGoToDay: _goToDay),
             Expanded(
               child: eventsAsync.when(
                 data: (events) => _buildBody(events, weekStartDay, fired, l10n),
@@ -140,157 +136,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTopBar(ThemeData theme, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
-      child: Row(
-        children: [
-          Icon(
-            Icons.calendar_today,
-            size: 18,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          Text(l10n.calendarTitle, style: theme.textTheme.titleMedium),
-          const Spacer(),
-          _buildNotificationsButton(theme, l10n),
-          _buildSocialButton(theme, l10n),
-          IconButton(
-            tooltip: l10n.tooltipAssistant,
-            icon: const Icon(Icons.smart_toy_outlined, size: 18),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AssistantScreen())),
-          ),
-          IconButton(
-            tooltip: l10n.tooltipSettings,
-            icon: const Icon(Icons.settings_outlined, size: 18),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
-          IconButton(
-            tooltip: l10n.tooltipSignOut,
-            icon: const Icon(Icons.logout, size: 18),
-            onPressed: () => ref.read(authControllerProvider.notifier).logout(),
-          ),
-          IconButton(
-            tooltip: l10n.tooltipHideEsc,
-            icon: const Icon(Icons.close, size: 18),
-            onPressed: () => AppWindowController.instance.toggleVisibility(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotificationsButton(ThemeData theme, AppLocalizations l10n) {
-    final List<FiredReminder> fired = ref.watch(reminderEngineProvider);
-    final serverNotifications =
-        ref.watch(notificationsProvider).valueOrNull ?? const [];
-
-    final items = <NotificationItem>[
-      for (final entry in fired)
-        NotificationItem(message: entry.message(l10n), time: entry.firedAt),
-      for (final notification in serverNotifications)
-        NotificationItem(
-          message: formatServerNotification(notification, l10n),
-          time: DateTime.parse(notification['createdAt'] as String).toLocal(),
-        ),
-    ]..sort((a, b) => b.time.compareTo(a.time));
-
-    final unseenCount = items
-        .where((i) => i.time.isAfter(_notificationsSeenAt))
-        .length;
-
-    return PopupMenuButton<String>(
-      tooltip: l10n.tooltipNotifications,
-      onOpened: () => setState(() => _notificationsSeenAt = DateTime.now()),
-      onSelected: (value) {
-        if (value == 'view_all') {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-          );
-        }
-      },
-      itemBuilder: (context) => [
-        if (items.isEmpty)
-          PopupMenuItem(enabled: false, child: Text(l10n.noNotificationsYet))
-        else
-          for (final item in items.take(10))
-            PopupMenuItem(
-              enabled: false,
-              child: SizedBox(
-                width: 260,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item.message,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      DateFormat.MMMd().add_jm().format(item.time),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.outline,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'view_all',
-          child: Row(
-            children: [
-              const Icon(Icons.history, size: 16),
-              const SizedBox(width: 8),
-              Text(l10n.actionViewAllNotifications),
-            ],
-          ),
-        ),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Badge(
-          isLabelVisible: unseenCount > 0,
-          label: Text('$unseenCount'),
-          child: const Icon(Icons.notifications_outlined, size: 18),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton(ThemeData theme, AppLocalizations l10n) {
-    final pendingInvites =
-        ref.watch(pendingEventInvitesProvider).valueOrNull ?? const [];
-    final incomingRequests =
-        ref.watch(incomingFriendRequestsProvider).valueOrNull ?? const [];
-    final badgeCount = pendingInvites.length + incomingRequests.length;
-
-    return IconButton(
-      tooltip: l10n.tooltipFriendsGroups,
-      icon: Badge(
-        isLabelVisible: badgeCount > 0,
-        label: Text('$badgeCount'),
-        child: const Icon(Icons.people_outline, size: 18),
-      ),
-      // Tapping an invite in the Invites tab pops SocialScreen with that
-      // invite's day instead of resolving it there (see _EventInvitesTab) —
-      // jump the calendar to it so the pending-invite tile is right there
-      // to accept/decline.
-      onPressed: () async {
-        final targetDay = await Navigator.of(context).push<DateTime>(
-          MaterialPageRoute(builder: (_) => const SocialScreen()),
-        );
-        if (targetDay != null) _goToDay(targetDay);
-      },
     );
   }
 
@@ -754,9 +599,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     List<FiredReminder> fired,
     AppLocalizations l10n,
   ) {
-    final timedEntries = timed.map(_AgendaEntry.timed).toList()
+    final timedEntries = timed.map(AgendaEntry.timed).toList()
       ..sort((a, b) => a.start!.compareTo(b.start!));
-    final looseEntries = loose.map(_AgendaEntry.loose).toList();
+    final looseEntries = loose.map(AgendaEntry.loose).toList();
     final isEmpty = looseEntries.isEmpty && timedEntries.isEmpty;
 
     return Column(
@@ -802,7 +647,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     style: const TextStyle(color: Colors.grey),
                   ),
                 )
-              : _FadingList(
+              : FadingList(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   children: [
                     if (looseEntries.isNotEmpty) ...[
@@ -832,7 +677,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Widget _buildAgendaTile(
-    _AgendaEntry entry,
+    AgendaEntry entry,
     List<FiredReminder> fired,
     AppLocalizations l10n,
   ) {
@@ -866,7 +711,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           (f) => f.eventId == entry.event.id && f.occurrenceStart == start,
         );
 
-    return _AgendaTile(
+    return AgendaTile(
       title: entry.title,
       subtitle: entry.isLoose
           ? l10n.anytime
@@ -967,7 +812,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       )
                     // Reordering here is a distinct drag affordance from each
                     // chip's own Draggable<Event> (drag OUT onto a calendar
-                    // day) — see _BacklogChip's drag_indicator handle, which
+                    // day) — see BacklogChip's drag_indicator handle, which
                     // is the only thing wired to onReorder below.
                     : ReorderableListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -975,7 +820,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         itemCount: backlog.length,
                         onReorderItem: (oldIndex, newIndex) =>
                             _reorderBacklog(backlog, oldIndex, newIndex),
-                        itemBuilder: (context, index) => _BacklogChip(
+                        itemBuilder: (context, index) => BacklogChip(
                           key: ValueKey(backlog[index].id),
                           event: backlog[index],
                           index: index,
@@ -1015,461 +860,5 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final startStr = '${two(start.hour)}:${two(start.minute)}';
     if (end == null) return l10n.durationTbd(startStr);
     return '$startStr - ${two(end.hour)}:${two(end.minute)}';
-  }
-}
-
-/// Normalizes a timed occurrence or a loose task into one shape so the day
-/// agenda can render and sort them together.
-class _AgendaEntry {
-  _AgendaEntry.timed(EventOccurrence occurrence)
-    : event = occurrence.master,
-      start = occurrence.start,
-      end = occurrence.end,
-      isLoose = false;
-
-  _AgendaEntry.loose(this.event) : start = null, end = null, isLoose = true;
-
-  final Event event;
-  final DateTime? start;
-  final DateTime? end;
-  final bool isLoose;
-
-  String get id => event.id;
-  String get title => event.title;
-  bool get isAllDay => event.isAllDay;
-  bool get isPending => event.pendingOperation != null;
-  bool get isRecurring => event.rrule != null;
-  bool get hasDescription => (event.description ?? '').trim().isNotEmpty;
-}
-
-class _AgendaTile extends StatelessWidget {
-  const _AgendaTile({
-    required this.title,
-    required this.subtitle,
-    required this.colorId,
-    required this.isPending,
-    required this.dragData,
-    required this.onTap,
-    this.isRecurring = false,
-    this.isLoose = false,
-    this.hasDescription = false,
-    this.draggable = true,
-    this.isHappeningNow = false,
-    this.hasFiredReminder = false,
-    this.isShared = false,
-    this.isPendingInvite = false,
-    this.ownerName,
-  });
-
-  final String title;
-  final String subtitle;
-  final String colorId;
-  final bool isPending;
-  final bool isRecurring;
-  final bool isLoose;
-  final bool hasDescription;
-  final bool draggable;
-  // Mutually exclusive (see _buildAgendaTile) — a timed event currently
-  // between its start/end, vs. one whose reminder fired but hasn't started
-  // (or has no end) yet. Different colors so the two states read distinctly
-  // at a glance rather than just "something about this one is special".
-  final bool isHappeningNow;
-  final bool hasFiredReminder;
-  // True when this task belongs to someone else and was shared with the
-  // current user (myRole != 'owner') — surfaced as a small icon so a task
-  // someone else added is obviously distinct from the user's own, without
-  // having to open it first.
-  final bool isShared;
-  // True for a still-pending invite (myRole == 'invited') — takes over the
-  // tile's whole appearance (see build below) rather than just adding an
-  // icon, since this isn't "my" task yet at all, just something waiting on
-  // a yes/no from the user.
-  final bool isPendingInvite;
-  final String? ownerName;
-  final Event dragData;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = colorForEvent(colorId);
-    final l10n = AppLocalizations.of(context)!;
-    final highlightColor = isHappeningNow
-        ? Colors.green
-        : hasFiredReminder
-        ? Colors.amber.shade800
-        : null;
-
-    // Loose (no specific time) tasks render as a light, outlined chip —
-    // visually distinct from a fully-scheduled tile with a solid color bar,
-    // so it's obvious at a glance which tasks are still just placeholders.
-    // A highlight (happening now / reminder fired) takes priority over that
-    // styling, but loose tasks never carry one anyway (see _buildAgendaTile).
-    // A pending invite overrides all of the above — see isPendingInvite.
-    final content = InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: isPendingInvite
-            ? BoxDecoration(
-                border: Border.all(color: Colors.blue.shade300, width: 1.2),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.blue.withAlpha(14),
-              )
-            : highlightColor != null
-            ? BoxDecoration(
-                border: Border.all(color: highlightColor),
-                borderRadius: BorderRadius.circular(8),
-                color: highlightColor.withAlpha(28),
-              )
-            : isLoose
-            ? BoxDecoration(
-                border: Border.all(color: color.withAlpha(160)),
-                borderRadius: BorderRadius.circular(8),
-                color: color.withAlpha(12),
-              )
-            : null,
-        child: Row(
-          children: [
-            if (isPendingInvite)
-              Icon(Icons.mail_outline, size: 18, color: Colors.blue.shade400)
-            else if (isLoose)
-              Icon(Icons.circle_outlined, size: 14, color: color)
-            else
-              Container(
-                width: 4,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: isLoose ? FontWeight.normal : FontWeight.w500,
-                      fontStyle: isLoose ? FontStyle.italic : FontStyle.normal,
-                    ),
-                  ),
-                  Text(
-                    isPendingInvite
-                        ? (ownerName != null
-                              ? l10n.sharedByOwner(ownerName!)
-                              : l10n.pendingInviteBadge)
-                        : subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isPendingInvite
-                          ? Colors.blue.shade400
-                          : Colors.grey.shade600,
-                      fontWeight: isPendingInvite
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isShared && !isPendingInvite)
-              Tooltip(
-                message: ownerName != null
-                    ? l10n.tooltipSharedEvent(ownerName!)
-                    : l10n.sharedWithYou,
-                child: Icon(
-                  Icons.group_outlined,
-                  size: 15,
-                  color: Colors.blue.shade400,
-                ),
-              ),
-            if (hasDescription)
-              Tooltip(
-                message: l10n.tooltipHasDescription,
-                child: Icon(Icons.notes, size: 15, color: Colors.grey.shade500),
-              ),
-            if (isRecurring)
-              Tooltip(
-                message: l10n.tooltipRepeats,
-                child: Icon(
-                  Icons.repeat,
-                  size: 16,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            if (isPending)
-              Tooltip(
-                message: l10n.tooltipNotSynced,
-                child: Icon(
-                  Icons.cloud_off,
-                  size: 16,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-
-    if (!draggable) return content;
-
-    // A plain (not long-press) drag, matching the backlog chips — the inner
-    // InkWell still gets a clean tap when the pointer doesn't move far
-    // enough to count as a drag, so quick taps keep opening the edit form.
-    return Draggable<Event>(
-      data: dragData,
-      feedback: Material(
-        color: Colors.transparent,
-        child: SizedBox(width: 220, child: content),
-      ),
-      childWhenDragging: Opacity(opacity: 0.3, child: content),
-      child: content,
-    );
-  }
-}
-
-/// A [ListView] with a fade-to-background hint at the bottom edge that only
-/// appears while there's more content below the visible area.
-class _FadingList extends StatefulWidget {
-  const _FadingList({required this.children, this.padding});
-
-  final List<Widget> children;
-  final EdgeInsetsGeometry? padding;
-
-  @override
-  State<_FadingList> createState() => _FadingListState();
-}
-
-class _FadingListState extends State<_FadingList> {
-  final _controller = ScrollController();
-  bool _hasMoreBelow = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_updateFade);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateFade());
-  }
-
-  @override
-  void didUpdateWidget(covariant _FadingList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // The list content (e.g. selected day, backlog) may have changed size
-    // without a scroll event, so re-check after the new layout settles.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateFade());
-  }
-
-  void _updateFade() {
-    if (!_controller.hasClients) return;
-    final position = _controller.position;
-    final hasMore =
-        position.maxScrollExtent > 0 &&
-        position.pixels < position.maxScrollExtent - 2;
-    if (hasMore != _hasMoreBelow && mounted) {
-      setState(() => _hasMoreBelow = hasMore);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ListView(
-          controller: _controller,
-          padding: widget.padding,
-          children: widget.children,
-        ),
-        if (_hasMoreBelow)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 20,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Theme.of(context).scaffoldBackgroundColor.withAlpha(0),
-                      Theme.of(context).scaffoldBackgroundColor,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _BacklogChip extends ConsumerWidget {
-  const _BacklogChip({super.key, required this.event, required this.index});
-
-  final Event event;
-  // Position within the currently-displayed backlog list — only used to
-  // wire up the drag_indicator handle to ReorderableListView's onReorder;
-  // unrelated to backlogOrder itself, which is recomputed for the whole
-  // list once a drag actually completes (see _reorderBacklog).
-  final int index;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final color = colorForEvent(event.id);
-    final hasDescription = (event.description ?? '').trim().isNotEmpty;
-    final isPendingInvite = event.myRole == 'invited';
-    final l10n = AppLocalizations.of(context)!;
-
-    final content = Container(
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isPendingInvite ? Colors.blue.shade300 : color,
-        ),
-        borderRadius: BorderRadius.circular(6),
-        color: isPendingInvite ? Colors.blue.withAlpha(14) : null,
-      ),
-      child: Row(
-        children: [
-          // A separate drag affordance from the rest of the chip (which
-          // stays a Draggable<Event> for dragging OUT onto a calendar day)
-          // — grabbing this handle instead reorders within this list. A
-          // still-pending invite can't be scheduled until accepted, so it
-          // skips both drag affordances (see the outer Draggable below too).
-          if (!isPendingInvite)
-            ReorderableDragStartListener(
-              index: index,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 6),
-                child: Icon(
-                  Icons.drag_indicator,
-                  size: 16,
-                  color: Colors.grey.shade400,
-                ),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Tooltip(
-                message: l10n.pendingInviteBadge,
-                child: Icon(
-                  Icons.mail_outline,
-                  size: 14,
-                  color: Colors.blue.shade400,
-                ),
-              ),
-            ),
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => isPendingInvite
-                      ? PendingInviteScreen(event: event)
-                      : EventFormScreen(existingEvent: event),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        event.title,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: isPendingInvite
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color: isPendingInvite ? Colors.blue.shade400 : null,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (event.myRole != 'owner' && !isPendingInvite)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Tooltip(
-                          message: event.ownerDisplayName != null
-                              ? l10n.tooltipSharedEvent(event.ownerDisplayName!)
-                              : l10n.sharedWithYou,
-                          child: Icon(
-                            Icons.group_outlined,
-                            size: 12,
-                            color: Colors.blue.shade400,
-                          ),
-                        ),
-                      ),
-                    if (hasDescription)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Icon(
-                          Icons.notes,
-                          size: 12,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    if (event.pendingOperation != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Icon(
-                          Icons.cloud_off,
-                          size: 12,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    // Deleting is owner-only server-side (see
-                    // EventsService.remove / findOwnedOrThrow) — any
-                    // accepted invitee can change an event's
-                    // content/schedule but not remove it entirely.
-                    if (event.myRole == 'owner')
-                      InkWell(
-                        onTap: () => ref
-                            .read(eventsRepositoryProvider)
-                            .deleteEvent(event.id),
-                        child: Icon(
-                          Icons.close,
-                          size: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (isPendingInvite) return content;
-
-    return Draggable<Event>(
-      data: event,
-      feedback: Material(
-        color: Colors.transparent,
-        child: SizedBox(width: 200, child: content),
-      ),
-      childWhenDragging: Opacity(opacity: 0.3, child: content),
-      child: content,
-    );
   }
 }
