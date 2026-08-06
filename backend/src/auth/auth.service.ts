@@ -844,10 +844,12 @@ export class AuthService {
   }
 
   // Mints a fresh access+refresh pair for a still-valid refresh token and
-  // rotates it (the old row is deleted, not just extended) — a client that
-  // touches the backend at least once within REFRESH_TOKEN_EXPIRES_IN_DAYS
-  // never has to show the login screen again, but a stolen token can only
-  // ever be replayed once before this invalidates it.
+  // rotates it (the old row is kept but marked revoked, not deleted) — a
+  // client that touches the backend at least once within
+  // REFRESH_TOKEN_EXPIRES_IN_DAYS never has to show the login screen again,
+  // but a stolen token can only ever be replayed once before this
+  // invalidates it. Presenting an already-revoked token again (see below)
+  // is treated as a theft signal, not just a stale-token error.
   async refresh(refreshToken: string) {
     const tokenHash = this.hashToken(refreshToken);
     const stored = await this.prisma.refreshToken.findUnique({
@@ -855,15 +857,50 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!stored || stored.expiresAt.getTime() <= Date.now()) {
-      if (stored)
-        await this.prisma.refreshToken
-          .delete({ where: { id: stored.id } })
-          .catch(() => undefined);
+    if (!stored) {
       throw new UnauthorizedException('Refresh token is invalid or expired');
     }
 
-    await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+    // A legitimate client only ever uses the newest token it was issued, so
+    // someone presenting one that was already rotated away means either two
+    // requests raced (rare — the client already single-flights its own
+    // refresh calls) or the token was stolen and both the thief and the
+    // real owner are trying to use it. Either way, burn every session for
+    // this user so re-authenticating is required everywhere.
+    if (stored.revokedAt) {
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId: stored.userId },
+      });
+      throw new UnauthorizedException('Refresh token is invalid or expired');
+    }
+
+    if (stored.expiresAt.getTime() <= Date.now()) {
+      await this.prisma.refreshToken
+        .delete({ where: { id: stored.id } })
+        .catch(() => undefined);
+      throw new UnauthorizedException('Refresh token is invalid or expired');
+    }
+
+    await this.prisma.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
+
+    // Piggybacks on normal traffic to keep the table from growing forever
+    // now that rotated-away rows are kept instead of deleted — a row past
+    // its own original expiry has no remaining detection value (an expired
+    // token is already rejected on its own), so it's safe to drop. No
+    // separate cleanup job needed for this.
+    this.prisma.refreshToken
+      .deleteMany({
+        where: {
+          userId: stored.userId,
+          revokedAt: { not: null },
+          expiresAt: { lt: new Date() },
+        },
+      })
+      .catch(() => undefined);
+
     return this.buildAuthResponse(stored.user);
   }
 
