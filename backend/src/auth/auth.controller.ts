@@ -7,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   AuthenticatedUser,
   CurrentUser,
@@ -29,35 +30,49 @@ import { UpdateUsernameDto } from './dto/update-username.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
 
+// Applied to every unauthenticated endpoint that either checks a password or
+// a short numeric/code guess (login, the various email codes, 2FA) — the
+// app-wide default in app.module.ts is far too loose to stop a brute-force
+// attempt on any of these specifically. 5 attempts/minute per IP is well
+// above anything a real user hits (typos, a slow authenticator app, etc.)
+// but cuts an automated guesser down to a few hundred attempts/day.
+const AUTH_THROTTLE = { default: { limit: 5, ttl: 60_000 } };
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle(AUTH_THROTTLE)
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @Post('verify-email')
   verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @Post('resend-verification')
   resendVerification(@Body() dto: ResendVerificationDto) {
     return this.authService.resendVerification(dto);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
@@ -70,6 +85,7 @@ export class AuthController {
 
   // Completes a login that was paused by a TOTP_REQUIRED response from
   // POST /login — no guard, since the caller doesn't have a JWT yet.
+  @Throttle(AUTH_THROTTLE)
   @Post('2fa/verify')
   verifyTwoFactor(@Body() dto: VerifyTwoFactorDto) {
     return this.authService.verifyTwoFactorLogin(dto);

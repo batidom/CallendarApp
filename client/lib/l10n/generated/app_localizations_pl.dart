@@ -72,6 +72,20 @@ class AppLocalizationsPl extends AppLocalizations {
   String get validatorPasswordTooShort => 'Minimum 8 znaków';
 
   @override
+  String get validatorPasswordTooLong => 'Maksymalnie 72 znaki';
+
+  @override
+  String get validatorPasswordRequired => 'Wpisz hasło';
+
+  @override
+  String get validatorPasswordPolicy =>
+      'Musi zawierać małą literę, wielką literę, cyfrę i symbol';
+
+  @override
+  String get passwordRequirementsHint =>
+      'Minimum 8 znaków, w tym wielka litera, mała litera, cyfra i symbol';
+
+  @override
   String get loginRegisterButton => 'Zarejestruj się';
 
   @override

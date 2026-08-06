@@ -73,6 +73,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get validatorPasswordTooShort => 'At least 8 characters';
 
   @override
+  String get validatorPasswordTooLong => 'At most 72 characters';
+
+  @override
+  String get validatorPasswordRequired => 'Enter your password';
+
+  @override
+  String get validatorPasswordPolicy =>
+      'Must include a lowercase letter, an uppercase letter, a number, and a symbol';
+
+  @override
+  String get passwordRequirementsHint =>
+      'At least 8 characters, with uppercase, lowercase, a number, and a symbol';
+
+  @override
   String get loginRegisterButton => 'Register';
 
   @override

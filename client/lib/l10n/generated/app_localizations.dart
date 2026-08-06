@@ -224,6 +224,30 @@ abstract class AppLocalizations {
   /// **'At least 8 characters'**
   String get validatorPasswordTooShort;
 
+  /// No description provided for @validatorPasswordTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'At most 72 characters'**
+  String get validatorPasswordTooLong;
+
+  /// No description provided for @validatorPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get validatorPasswordRequired;
+
+  /// No description provided for @validatorPasswordPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Must include a lowercase letter, an uppercase letter, a number, and a symbol'**
+  String get validatorPasswordPolicy;
+
+  /// No description provided for @passwordRequirementsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters, with uppercase, lowercase, a number, and a symbol'**
+  String get passwordRequirementsHint;
+
   /// No description provided for @loginRegisterButton.
   ///
   /// In en, this message translates to:

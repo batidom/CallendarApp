@@ -467,7 +467,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                 controller: newController,
                 obscureText: true,
                 enabled: !isSubmitting,
-                decoration: InputDecoration(labelText: l10n.fieldNewPassword),
+                decoration: InputDecoration(
+                  labelText: l10n.fieldNewPassword,
+                  helperText: l10n.passwordRequirementsHint,
+                  helperMaxLines: 2,
+                ),
               ),
               if (error != null)
                 Padding(

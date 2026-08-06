@@ -78,6 +78,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (mounted) setState(() => _isSubmitting = false);
   }
 
+  // Mirrors the backend's PASSWORD_REGEX (register/change-password/
+  // reset-password DTOs) so a weak password is caught before the round
+  // trip instead of only after a 400 comes back.
+  String? _strongPasswordError(String? value, AppLocalizations l10n) {
+    final password = value ?? '';
+    if (password.length < 8) return l10n.validatorPasswordTooShort;
+    if (password.length > 72) return l10n.validatorPasswordTooLong;
+    final hasLower = RegExp(r'[a-z]').hasMatch(password);
+    final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
+    final hasDigit = RegExp(r'\d').hasMatch(password);
+    final hasSymbol = RegExp(r'[^a-zA-Z0-9]').hasMatch(password);
+    if (!hasLower || !hasUpper || !hasDigit || !hasSymbol) {
+      return l10n.validatorPasswordPolicy;
+    }
+    return null;
+  }
+
   Future<void> _submitTwoFactor() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
@@ -230,14 +247,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _passwordController,
-                    decoration: InputDecoration(labelText: l10n.fieldPassword),
+                    decoration: InputDecoration(
+                      labelText: l10n.fieldPassword,
+                      helperText: _isRegisterMode ? l10n.passwordRequirementsHint : null,
+                      helperMaxLines: 2,
+                    ),
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) {
                       if (!_isSubmitting) _submit();
                     },
-                    validator: (value) =>
-                        (value == null || value.length < 8) ? l10n.validatorPasswordTooShort : null,
+                    validator: (value) => _isRegisterMode
+                        ? _strongPasswordError(value, l10n)
+                        : (value == null || value.isEmpty) ? l10n.validatorPasswordRequired : null,
                   ),
                   CheckboxListTile(
                     dense: true,
@@ -543,14 +565,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   TextFormField(
                     controller: _newPasswordController,
-                    decoration: InputDecoration(labelText: l10n.fieldNewPassword),
+                    decoration: InputDecoration(
+                      labelText: l10n.fieldNewPassword,
+                      helperText: l10n.passwordRequirementsHint,
+                      helperMaxLines: 2,
+                    ),
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) {
                       if (!_isSubmitting) _submitPasswordReset();
                     },
-                    validator: (value) =>
-                        (value == null || value.length < 8) ? l10n.validatorPasswordTooShort : null,
+                    validator: (value) => _strongPasswordError(value, l10n),
                   ),
                   if (_forgotPasswordError != null)
                     Padding(
