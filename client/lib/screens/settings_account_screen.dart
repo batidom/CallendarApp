@@ -453,7 +453,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
               TextField(
                 controller: codeController,
                 enabled: !isSubmitting,
-                decoration: InputDecoration(labelText: l10n.fieldTwoFactorCode),
+                decoration: InputDecoration(
+                  labelText: l10n.fieldTwoFactorCode,
+                  helperText: l10n.twoFactorDisableCodeHint,
+                  helperMaxLines: 2,
+                ),
               ),
               if (method == 'email_otp') ...[
                 Align(

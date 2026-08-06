@@ -312,6 +312,7 @@
   "twoFactorBackupCodesWarning": "Each code can be used once if you lose access to your authenticator app or email. Store them somewhere safe — they won't be shown again.",
   "twoFactorBackupCodesConfirmCheckbox": "I've saved these codes somewhere safe",
   "twoFactorDisableDialogTitle": "Disable two-factor authentication",
+  "twoFactorDisableCodeHint": "Your current code, or one of your backup codes if you've lost access to it",
 
   "sectionDangerZone": "Danger zone",
   "actionDeleteAccount": "Delete account",

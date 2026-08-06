@@ -279,6 +279,7 @@
   "twoFactorBackupCodesWarning": "Każdego kodu można użyć raz, jeśli stracisz dostęp do aplikacji uwierzytelniającej lub e-maila. Przechowuj je w bezpiecznym miejscu — nie zostaną ponownie wyświetlone.",
   "twoFactorBackupCodesConfirmCheckbox": "Zapisałem/-am te kody w bezpiecznym miejscu",
   "twoFactorDisableDialogTitle": "Wyłącz uwierzytelnianie dwuskładnikowe",
+  "twoFactorDisableCodeHint": "Twój bieżący kod lub jeden z kodów zapasowych, jeśli straciłeś/-aś do niego dostęp",
 
   "sectionDangerZone": "Strefa niebezpieczna",
   "actionDeleteAccount": "Usuń konto",

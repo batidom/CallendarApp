@@ -1300,6 +1300,12 @@ abstract class AppLocalizations {
   /// **'Disable two-factor authentication'**
   String get twoFactorDisableDialogTitle;
 
+  /// No description provided for @twoFactorDisableCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current code, or one of your backup codes if you\'ve lost access to it'**
+  String get twoFactorDisableCodeHint;
+
   /// No description provided for @sectionDangerZone.
   ///
   /// In en, this message translates to:

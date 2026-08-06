@@ -738,6 +738,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get twoFactorDisableDialogTitle => 'Disable two-factor authentication';
 
   @override
+  String get twoFactorDisableCodeHint =>
+      'Your current code, or one of your backup codes if you\'ve lost access to it';
+
+  @override
   String get sectionDangerZone => 'Danger zone';
 
   @override

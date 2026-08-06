@@ -755,6 +755,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wyłącz uwierzytelnianie dwuskładnikowe';
 
   @override
+  String get twoFactorDisableCodeHint =>
+      'Twój bieżący kod lub jeden z kodów zapasowych, jeśli straciłeś/-aś do niego dostęp';
+
+  @override
   String get sectionDangerZone => 'Strefa niebezpieczna';
 
   @override
