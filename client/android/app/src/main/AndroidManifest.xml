@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Every API call (auth, calendar sync, the assistant, ...) needs this —
+         it was previously only declared in the debug/profile manifests
+         (which Flutter injects automatically for those build modes), so a
+         release build had no network access at all. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- For the assistant's voice input (see record package usage in
+         assistant_screen.dart / settings_voice_input_screen.dart). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="calendar_client"
         android:name="${applicationName}"

@@ -1,0 +1,11 @@
+## Copy this file to key.properties (same directory) and fill in real values
+## once the upload keystore has been generated — see the "Android release
+## signing" section of the project's deployment plan for the exact keytool
+## command. key.properties itself is gitignored; never commit it or the
+## .jks/.keystore file it points at.
+storePassword=
+keyPassword=
+keyAlias=upload
+## Path is relative to android/app (where build.gradle.kts resolves it), so
+## keeping the .jks alongside this file (in android/) needs the "../".
+storeFile=../upload-keystore.jks
