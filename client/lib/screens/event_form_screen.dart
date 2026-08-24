@@ -11,6 +11,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../providers/providers.dart';
 import '../utils/recurrence.dart';
 import '../utils/reminders.dart';
+import 'address_autocomplete_field.dart';
 import 'event_attachments_section.dart';
 import 'event_invite_section.dart';
 import 'event_reminders_section.dart';
@@ -521,6 +522,13 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
 
     final l10n = AppLocalizations.of(context)!;
 
+    // Bias the address-autocomplete field toward wherever the user actually
+    // lives when known (more precise), falling back to the weather city
+    // (coarser, but still narrows down which town's "Main Street" is meant).
+    final settings = ref.watch(settingsControllerProvider);
+    final addressBiasLat = settings.homeAddressLat ?? settings.weatherLat;
+    final addressBiasLon = settings.homeAddressLon ?? settings.weatherLon;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditing ? l10n.eventFormEditTitle : l10n.eventFormNewTitle),
@@ -579,13 +587,11 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               maxLines: 10,
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            AddressAutocompleteField(
               controller: _locationController,
-              decoration: InputDecoration(
-                labelText: l10n.fieldLocation,
-                prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
-              ),
-              textInputAction: TextInputAction.next,
+              labelText: l10n.fieldLocation,
+              biasLatitude: addressBiasLat,
+              biasLongitude: addressBiasLon,
             ),
             const SizedBox(height: 12),
             if (_hasSchedule) ...[

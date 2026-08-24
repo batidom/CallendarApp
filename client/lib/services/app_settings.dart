@@ -94,6 +94,12 @@ class AppSettings {
     this.confirmBeforeLeavingEvent = true,
     this.notificationSoundEnabled = true,
     this.notificationVolume = 0.7,
+    this.weatherCity,
+    this.weatherLat,
+    this.weatherLon,
+    this.homeAddress,
+    this.homeAddressLat,
+    this.homeAddressLon,
   });
 
   final ThemeMode themeMode;
@@ -140,6 +146,24 @@ class AppSettings {
   // OS's own system sounds (or a custom file played at full volume), which
   // don't offer a volume knob to hook into.
   final double notificationVolume;
+  // Display name + resolved coordinates for the day-agenda weather forecast
+  // (see WeatherService) — geocoded once when the user picks a city in
+  // Settings, not re-resolved on every app launch. Null means the feature
+  // is off; all three are set/cleared together (see the weatherLocation
+  // tuple in copyWith, mirroring the microphoneDevice pattern below).
+  final String? weatherCity;
+  final double? weatherLat;
+  final double? weatherLon;
+  // A precise, street-level address (as opposed to [weatherCity]'s
+  // city-level location) — used to bias the address-autocomplete field on
+  // events toward nearby streets, since street names commonly repeat across
+  // a country (e.g. many Polish towns have their own "Kazimierza..."
+  // street). Also intended as the future anchor for an event
+  // distance-from-home calculation once events themselves store
+  // coordinates. Same set/clear-together tuple pattern as weatherLocation.
+  final String? homeAddress;
+  final double? homeAddressLat;
+  final double? homeAddressLon;
 
   AppSettings copyWith({
     ThemeMode? themeMode,
@@ -157,6 +181,8 @@ class AppSettings {
     bool? confirmBeforeLeavingEvent,
     bool? notificationSoundEnabled,
     double? notificationVolume,
+    (String?, double?, double?)? weatherLocation,
+    (String?, double?, double?)? homeAddressLocation,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -175,6 +201,12 @@ class AppSettings {
       confirmBeforeLeavingEvent: confirmBeforeLeavingEvent ?? this.confirmBeforeLeavingEvent,
       notificationSoundEnabled: notificationSoundEnabled ?? this.notificationSoundEnabled,
       notificationVolume: notificationVolume ?? this.notificationVolume,
+      weatherCity: weatherLocation != null ? weatherLocation.$1 : weatherCity,
+      weatherLat: weatherLocation != null ? weatherLocation.$2 : weatherLat,
+      weatherLon: weatherLocation != null ? weatherLocation.$3 : weatherLon,
+      homeAddress: homeAddressLocation != null ? homeAddressLocation.$1 : homeAddress,
+      homeAddressLat: homeAddressLocation != null ? homeAddressLocation.$2 : homeAddressLat,
+      homeAddressLon: homeAddressLocation != null ? homeAddressLocation.$3 : homeAddressLon,
     );
   }
 }
@@ -198,6 +230,12 @@ class SettingsRepository {
   static const _confirmBeforeLeavingEventKey = 'settings_confirm_before_leaving_event';
   static const _notificationSoundEnabledKey = 'settings_notification_sound_enabled';
   static const _notificationVolumeKey = 'settings_notification_volume';
+  static const _weatherCityKey = 'settings_weather_city';
+  static const _weatherLatKey = 'settings_weather_lat';
+  static const _weatherLonKey = 'settings_weather_lon';
+  static const _homeAddressKey = 'settings_home_address';
+  static const _homeAddressLatKey = 'settings_home_address_lat';
+  static const _homeAddressLonKey = 'settings_home_address_lon';
 
   Future<AppSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -228,6 +266,12 @@ class SettingsRepository {
       notificationSoundEnabled:
           prefs.getBool(_notificationSoundEnabledKey) ?? defaults.notificationSoundEnabled,
       notificationVolume: prefs.getDouble(_notificationVolumeKey) ?? defaults.notificationVolume,
+      weatherCity: prefs.getString(_weatherCityKey),
+      weatherLat: prefs.getDouble(_weatherLatKey),
+      weatherLon: prefs.getDouble(_weatherLonKey),
+      homeAddress: prefs.getString(_homeAddressKey),
+      homeAddressLat: prefs.getDouble(_homeAddressLatKey),
+      homeAddressLon: prefs.getDouble(_homeAddressLonKey),
     );
   }
 
@@ -258,6 +302,28 @@ class SettingsRepository {
     await prefs.setBool(_confirmBeforeLeavingEventKey, settings.confirmBeforeLeavingEvent);
     await prefs.setBool(_notificationSoundEnabledKey, settings.notificationSoundEnabled);
     await prefs.setDouble(_notificationVolumeKey, settings.notificationVolume);
+    if (settings.weatherCity != null &&
+        settings.weatherLat != null &&
+        settings.weatherLon != null) {
+      await prefs.setString(_weatherCityKey, settings.weatherCity!);
+      await prefs.setDouble(_weatherLatKey, settings.weatherLat!);
+      await prefs.setDouble(_weatherLonKey, settings.weatherLon!);
+    } else {
+      await prefs.remove(_weatherCityKey);
+      await prefs.remove(_weatherLatKey);
+      await prefs.remove(_weatherLonKey);
+    }
+    if (settings.homeAddress != null &&
+        settings.homeAddressLat != null &&
+        settings.homeAddressLon != null) {
+      await prefs.setString(_homeAddressKey, settings.homeAddress!);
+      await prefs.setDouble(_homeAddressLatKey, settings.homeAddressLat!);
+      await prefs.setDouble(_homeAddressLonKey, settings.homeAddressLon!);
+    } else {
+      await prefs.remove(_homeAddressKey);
+      await prefs.remove(_homeAddressLatKey);
+      await prefs.remove(_homeAddressLonKey);
+    }
   }
 
   static T _enumFromName<T extends Enum>(List<T> values, String? name, T fallback) {

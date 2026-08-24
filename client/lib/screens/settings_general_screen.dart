@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../providers/providers.dart';
+import '../services/address_service.dart';
 import '../services/app_settings.dart';
+import 'search_picker_dialog.dart';
 import 'settings_section_header.dart';
 
 /// Appearance, language, and (desktop-only) startup behavior — the settings
@@ -83,6 +85,64 @@ class GeneralSettingsScreen extends ConsumerWidget {
               onChanged: (value) => controller.update((s) => s.copyWith(launchAtLoginEnabled: value)),
             ),
           ],
+          const Divider(),
+          SettingsSectionHeader(l10n.sectionHomeAddress),
+          ListTile(
+            dense: true,
+            title: Text(l10n.homeAddressLabel),
+            subtitle: Text(settings.homeAddress ?? l10n.weatherCityNotSet),
+            trailing: Wrap(
+              spacing: 4,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    final result = await showDialog<AddressResult>(
+                      context: context,
+                      builder: (_) => SearchPickerDialog<AddressResult>(
+                        title: l10n.homeAddressSearchDialogTitle,
+                        hintText: l10n.homeAddressSearchHint,
+                        noResultsText: l10n.homeAddressSearchNoResults,
+                        errorText: l10n.homeAddressSearchError,
+                        search: (query) => ref.read(addressServiceProvider).search(
+                              query,
+                              biasLatitude: settings.weatherLat,
+                              biasLongitude: settings.weatherLon,
+                            ),
+                        labelBuilder: (address) => address.displayName,
+                      ),
+                    );
+                    if (result != null) {
+                      controller.update(
+                        (s) => s.copyWith(
+                          homeAddressLocation: (
+                            result.displayName,
+                            result.latitude,
+                            result.longitude,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Text(
+                    settings.homeAddress == null ? l10n.homeAddressSet : l10n.homeAddressChange,
+                  ),
+                ),
+                if (settings.homeAddress != null)
+                  TextButton(
+                    onPressed: () => controller
+                        .update((s) => s.copyWith(homeAddressLocation: (null, null, null))),
+                    child: Text(l10n.weatherClearCity),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              l10n.homeAddressSubtitle,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ),
         ],
       ),
     );

@@ -2026,6 +2026,12 @@ abstract class AppLocalizations {
   /// **'Add event'**
   String get tooltipAddEvent;
 
+  /// No description provided for @tooltipAddSomeday.
+  ///
+  /// In en, this message translates to:
+  /// **'Add for someday'**
+  String get tooltipAddSomeday;
+
   /// No description provided for @assistantTitle.
   ///
   /// In en, this message translates to:
@@ -2085,6 +2091,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{title} — {label}'**
   String reminderWithLabel(String title, String label);
+
+  /// No description provided for @sectionWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather'**
+  String get sectionWeather;
+
+  /// No description provided for @weatherCityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get weatherCityLabel;
+
+  /// No description provided for @weatherCitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown on the day agenda when a forecast is available'**
+  String get weatherCitySubtitle;
+
+  /// No description provided for @weatherCityNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get weatherCityNotSet;
+
+  /// No description provided for @weatherChangeCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Change city'**
+  String get weatherChangeCity;
+
+  /// No description provided for @weatherSetCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Set city'**
+  String get weatherSetCity;
+
+  /// No description provided for @weatherClearCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get weatherClearCity;
+
+  /// No description provided for @weatherSearchDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your city'**
+  String get weatherSearchDialogTitle;
+
+  /// No description provided for @weatherSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'City name'**
+  String get weatherSearchHint;
+
+  /// No description provided for @weatherSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching cities found.'**
+  String get weatherSearchNoResults;
+
+  /// No description provided for @weatherSearchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search for cities. Check your connection and try again.'**
+  String get weatherSearchError;
+
+  /// No description provided for @weatherForecastUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Forecast unavailable'**
+  String get weatherForecastUnavailable;
+
+  /// No description provided for @weatherTempHighLow.
+  ///
+  /// In en, this message translates to:
+  /// **'{high}° / {low}°'**
+  String weatherTempHighLow(int high, int low);
+
+  /// No description provided for @sectionHomeAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Home address'**
+  String get sectionHomeAddress;
+
+  /// No description provided for @homeAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get homeAddressLabel;
+
+  /// No description provided for @homeAddressSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set address'**
+  String get homeAddressSet;
+
+  /// No description provided for @homeAddressChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change address'**
+  String get homeAddressChange;
+
+  /// No description provided for @homeAddressSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prioritizes nearby streets when searching for an event location'**
+  String get homeAddressSubtitle;
+
+  /// No description provided for @homeAddressSearchDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your address'**
+  String get homeAddressSearchDialogTitle;
+
+  /// No description provided for @homeAddressSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Street and number'**
+  String get homeAddressSearchHint;
+
+  /// No description provided for @homeAddressSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching addresses found.'**
+  String get homeAddressSearchNoResults;
+
+  /// No description provided for @homeAddressSearchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search for addresses. Check your connection and try again.'**
+  String get homeAddressSearchError;
 }
 
 class _AppLocalizationsDelegate

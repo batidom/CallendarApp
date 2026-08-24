@@ -483,6 +483,7 @@
 
   "tooltipAssistant": "Assistant",
   "tooltipAddEvent": "Add event",
+  "tooltipAddSomeday": "Add for someday",
   "assistantTitle": "Assistant",
   "assistantInputHint": "Ask me to schedule, find, or change something...",
   "assistantRecordingHint": "Listening... tap the mic again to stop",
@@ -511,5 +512,35 @@
       "title": { "type": "String" },
       "label": { "type": "String" }
     }
-  }
+  },
+
+  "sectionWeather": "Weather",
+  "weatherCityLabel": "City",
+  "weatherCitySubtitle": "Shown on the day agenda when a forecast is available",
+  "weatherCityNotSet": "Not set",
+  "weatherChangeCity": "Change city",
+  "weatherSetCity": "Set city",
+  "weatherClearCity": "Clear",
+  "weatherSearchDialogTitle": "Find your city",
+  "weatherSearchHint": "City name",
+  "weatherSearchNoResults": "No matching cities found.",
+  "weatherSearchError": "Couldn't search for cities. Check your connection and try again.",
+  "weatherForecastUnavailable": "Forecast unavailable",
+  "weatherTempHighLow": "{high}° / {low}°",
+  "@weatherTempHighLow": {
+    "placeholders": {
+      "high": { "type": "int" },
+      "low": { "type": "int" }
+    }
+  },
+
+  "sectionHomeAddress": "Home address",
+  "homeAddressLabel": "Address",
+  "homeAddressSet": "Set address",
+  "homeAddressChange": "Change address",
+  "homeAddressSubtitle": "Prioritizes nearby streets when searching for an event location",
+  "homeAddressSearchDialogTitle": "Find your address",
+  "homeAddressSearchHint": "Street and number",
+  "homeAddressSearchNoResults": "No matching addresses found.",
+  "homeAddressSearchError": "Couldn't search for addresses. Check your connection and try again."
 }
