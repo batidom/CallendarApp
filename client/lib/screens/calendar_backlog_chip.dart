@@ -5,6 +5,7 @@ import '../data/local/app_database.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../providers/providers.dart';
 import '../utils/event_colors.dart';
+import 'event_draggable.dart';
 import 'event_form_screen.dart';
 import 'pending_invite_screen.dart';
 
@@ -155,7 +156,7 @@ class BacklogChip extends ConsumerWidget {
 
     if (isPendingInvite) return content;
 
-    return Draggable<Event>(
+    return EventDraggable<Event>(
       data: event,
       feedback: Material(
         color: Colors.transparent,

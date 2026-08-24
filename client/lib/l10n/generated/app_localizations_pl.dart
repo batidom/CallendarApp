@@ -1149,6 +1149,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get tooltipAddEvent => 'Dodaj wydarzenie';
 
   @override
+  String get tooltipAddSomeday => 'Dodaj na kiedyś';
+
+  @override
   String get assistantTitle => 'Asystent';
 
   @override
@@ -1198,4 +1201,76 @@ class AppLocalizationsPl extends AppLocalizations {
   String reminderWithLabel(String title, String label) {
     return '$title — $label';
   }
+
+  @override
+  String get sectionWeather => 'Pogoda';
+
+  @override
+  String get weatherCityLabel => 'Miasto';
+
+  @override
+  String get weatherCitySubtitle =>
+      'Pokazywane w widoku dnia, gdy dostępna jest prognoza';
+
+  @override
+  String get weatherCityNotSet => 'Nie ustawiono';
+
+  @override
+  String get weatherChangeCity => 'Zmień miasto';
+
+  @override
+  String get weatherSetCity => 'Ustaw miasto';
+
+  @override
+  String get weatherClearCity => 'Usuń';
+
+  @override
+  String get weatherSearchDialogTitle => 'Znajdź swoje miasto';
+
+  @override
+  String get weatherSearchHint => 'Nazwa miasta';
+
+  @override
+  String get weatherSearchNoResults => 'Nie znaleziono pasujących miast.';
+
+  @override
+  String get weatherSearchError =>
+      'Nie udało się wyszukać miast. Sprawdź połączenie i spróbuj ponownie.';
+
+  @override
+  String get weatherForecastUnavailable => 'Prognoza niedostępna';
+
+  @override
+  String weatherTempHighLow(int high, int low) {
+    return '$high° / $low°';
+  }
+
+  @override
+  String get sectionHomeAddress => 'Adres domowy';
+
+  @override
+  String get homeAddressLabel => 'Adres';
+
+  @override
+  String get homeAddressSet => 'Ustaw adres';
+
+  @override
+  String get homeAddressChange => 'Zmień adres';
+
+  @override
+  String get homeAddressSubtitle =>
+      'Ułatwia wyszukiwanie pobliskich ulic przy dodawaniu miejsca wydarzenia';
+
+  @override
+  String get homeAddressSearchDialogTitle => 'Znajdź swój adres';
+
+  @override
+  String get homeAddressSearchHint => 'Ulica i numer';
+
+  @override
+  String get homeAddressSearchNoResults => 'Nie znaleziono pasujących adresów.';
+
+  @override
+  String get homeAddressSearchError =>
+      'Nie udało się wyszukać adresów. Sprawdź połączenie i spróbuj ponownie.';
 }

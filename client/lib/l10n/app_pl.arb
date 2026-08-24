@@ -415,6 +415,7 @@
 
   "tooltipAssistant": "Asystent",
   "tooltipAddEvent": "Dodaj wydarzenie",
+  "tooltipAddSomeday": "Dodaj na kiedyś",
   "assistantTitle": "Asystent",
   "assistantInputHint": "Poproś mnie o zaplanowanie, znalezienie lub zmianę czegoś...",
   "assistantRecordingHint": "Słucham... dotknij mikrofonu ponownie, aby zatrzymać",
@@ -425,5 +426,29 @@
   "assistantErrorGeneric": "Coś poszło nie tak: {error}",
 
   "reminderStartingNow": "{title} zaczyna się teraz",
-  "reminderWithLabel": "{title} — {label}"
+  "reminderWithLabel": "{title} — {label}",
+
+  "sectionWeather": "Pogoda",
+  "weatherCityLabel": "Miasto",
+  "weatherCitySubtitle": "Pokazywane w widoku dnia, gdy dostępna jest prognoza",
+  "weatherCityNotSet": "Nie ustawiono",
+  "weatherChangeCity": "Zmień miasto",
+  "weatherSetCity": "Ustaw miasto",
+  "weatherClearCity": "Usuń",
+  "weatherSearchDialogTitle": "Znajdź swoje miasto",
+  "weatherSearchHint": "Nazwa miasta",
+  "weatherSearchNoResults": "Nie znaleziono pasujących miast.",
+  "weatherSearchError": "Nie udało się wyszukać miast. Sprawdź połączenie i spróbuj ponownie.",
+  "weatherForecastUnavailable": "Prognoza niedostępna",
+  "weatherTempHighLow": "{high}° / {low}°",
+
+  "sectionHomeAddress": "Adres domowy",
+  "homeAddressLabel": "Adres",
+  "homeAddressSet": "Ustaw adres",
+  "homeAddressChange": "Zmień adres",
+  "homeAddressSubtitle": "Ułatwia wyszukiwanie pobliskich ulic przy dodawaniu miejsca wydarzenia",
+  "homeAddressSearchDialogTitle": "Znajdź swój adres",
+  "homeAddressSearchHint": "Ulica i numer",
+  "homeAddressSearchNoResults": "Nie znaleziono pasujących adresów.",
+  "homeAddressSearchError": "Nie udało się wyszukać adresów. Sprawdź połączenie i spróbuj ponownie."
 }

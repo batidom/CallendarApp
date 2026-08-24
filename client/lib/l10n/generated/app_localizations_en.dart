@@ -1135,6 +1135,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tooltipAddEvent => 'Add event';
 
   @override
+  String get tooltipAddSomeday => 'Add for someday';
+
+  @override
   String get assistantTitle => 'Assistant';
 
   @override
@@ -1181,4 +1184,76 @@ class AppLocalizationsEn extends AppLocalizations {
   String reminderWithLabel(String title, String label) {
     return '$title — $label';
   }
+
+  @override
+  String get sectionWeather => 'Weather';
+
+  @override
+  String get weatherCityLabel => 'City';
+
+  @override
+  String get weatherCitySubtitle =>
+      'Shown on the day agenda when a forecast is available';
+
+  @override
+  String get weatherCityNotSet => 'Not set';
+
+  @override
+  String get weatherChangeCity => 'Change city';
+
+  @override
+  String get weatherSetCity => 'Set city';
+
+  @override
+  String get weatherClearCity => 'Clear';
+
+  @override
+  String get weatherSearchDialogTitle => 'Find your city';
+
+  @override
+  String get weatherSearchHint => 'City name';
+
+  @override
+  String get weatherSearchNoResults => 'No matching cities found.';
+
+  @override
+  String get weatherSearchError =>
+      'Couldn\'t search for cities. Check your connection and try again.';
+
+  @override
+  String get weatherForecastUnavailable => 'Forecast unavailable';
+
+  @override
+  String weatherTempHighLow(int high, int low) {
+    return '$high° / $low°';
+  }
+
+  @override
+  String get sectionHomeAddress => 'Home address';
+
+  @override
+  String get homeAddressLabel => 'Address';
+
+  @override
+  String get homeAddressSet => 'Set address';
+
+  @override
+  String get homeAddressChange => 'Change address';
+
+  @override
+  String get homeAddressSubtitle =>
+      'Prioritizes nearby streets when searching for an event location';
+
+  @override
+  String get homeAddressSearchDialogTitle => 'Find your address';
+
+  @override
+  String get homeAddressSearchHint => 'Street and number';
+
+  @override
+  String get homeAddressSearchNoResults => 'No matching addresses found.';
+
+  @override
+  String get homeAddressSearchError =>
+      'Couldn\'t search for addresses. Check your connection and try again.';
 }

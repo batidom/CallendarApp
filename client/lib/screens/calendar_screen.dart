@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../data/local/app_database.dart';
@@ -12,6 +14,7 @@ import '../providers/providers.dart';
 import '../services/app_settings.dart';
 import '../services/notification_sound_player.dart';
 import '../services/reminder_engine.dart';
+import '../services/weather_service.dart';
 import '../utils/calendar_grid.dart';
 import '../utils/event_colors.dart';
 import '../utils/recurrence.dart';
@@ -33,6 +36,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
   final _quickAddController = TextEditingController();
+  final _quickAddFocusNode = FocusNode();
+  // The quick-add field starts hidden behind a "+" button (matching the
+  // main add-event button) instead of always sitting open, since an
+  // always-visible input ate into the backlog list's space below it.
+  bool _showQuickAddField = false;
+  // Fraction of the day-agenda/backlog split's height given to the agenda
+  // (the rest goes to the backlog panel) — dragged via the handle between
+  // them (see _buildDayView) and persisted across launches.
+  static const _agendaSplitKey = 'calendar_day_agenda_split';
+  double _agendaSplit = 0.5;
+  // Anchors for the drag above: captured once on drag start so each update
+  // computes the new height from the total distance moved since the press,
+  // rather than summing per-event deltas. Summing deltas drops movement
+  // whenever the pointer fires more than one move event per rebuilt frame
+  // (common with a fast mouse), which is what made the bar visibly lag
+  // behind the cursor.
+  double? _dragStartGlobalY;
+  double? _dragStartAgendaHeight;
   // Tracks the newest server notification a sound has already played for —
   // null until the first successful fetch, which deliberately doesn't sound
   // off for whatever's already sitting there from before the app opened
@@ -45,6 +66,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   void initState() {
     super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      final saved = prefs.getDouble(_agendaSplitKey);
+      if (saved != null && mounted) setState(() => _agendaSplit = saved);
+    });
+
+    // Collapse the quick-add field back behind the "+" button once it loses
+    // focus with nothing typed, rather than leaving an empty input parked
+    // open (submitting non-empty text hides it explicitly — see onSubmitted).
+    _quickAddFocusNode.addListener(() {
+      if (!_quickAddFocusNode.hasFocus &&
+          _quickAddController.text.isEmpty &&
+          _showQuickAddField) {
+        setState(() => _showQuickAddField = false);
+      }
+    });
+
     // notificationsProvider is a plain FutureProvider — it fetches once and
     // then sits stale until something invalidates it, so without this the
     // bell badge would never reflect a change made by someone else while
@@ -91,6 +128,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     _eventsPollTimer?.cancel();
     _liveTickTimer?.cancel();
     _quickAddController.dispose();
+    _quickAddFocusNode.dispose();
     super.dispose();
   }
 
@@ -386,19 +424,89 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
         const Divider(height: 1),
         Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: _buildDayAgenda(
-                  selectedDayTimed,
-                  selectedDayLoose,
-                  fired,
-                  l10n,
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(child: _buildBacklogPanel(backlog, l10n)),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Touch needs a bigger hit target to grab comfortably than a
+              // mouse pointer does — desktop keeps the original compact
+              // handle since a precise cursor has no trouble with it.
+              final isTouchPlatform =
+                  defaultTargetPlatform == TargetPlatform.android ||
+                  defaultTargetPlatform == TargetPlatform.iOS;
+              final handleHeight = isTouchPlatform ? 32.0 : 16.0;
+              final available = (constraints.maxHeight - handleHeight).clamp(
+                0.0,
+                double.infinity,
+              );
+              // Keep both sections from being dragged down to nothing —
+              // 72px is roughly one agenda tile / a couple of backlog chips.
+              final minSectionHeight = available > 144 ? 72.0 : available / 2;
+              final agendaHeight = available == 0
+                  ? 0.0
+                  : (available * _agendaSplit).clamp(
+                      minSectionHeight,
+                      available - minSectionHeight,
+                    );
+              return Column(
+                children: [
+                  SizedBox(
+                    height: agendaHeight,
+                    child: _buildDayAgenda(
+                      selectedDayTimed,
+                      selectedDayLoose,
+                      fired,
+                      l10n,
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.resizeRow,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onVerticalDragStart: (details) {
+                        _dragStartGlobalY = details.globalPosition.dy;
+                        _dragStartAgendaHeight = agendaHeight;
+                      },
+                      onVerticalDragUpdate: (details) {
+                        if (available == 0 || _dragStartGlobalY == null) {
+                          return;
+                        }
+                        setState(() {
+                          final newHeight =
+                              _dragStartAgendaHeight! +
+                              (details.globalPosition.dy - _dragStartGlobalY!);
+                          _agendaSplit = (newHeight / available).clamp(
+                            0.0,
+                            1.0,
+                          );
+                        });
+                      },
+                      onVerticalDragEnd: (_) {
+                        _dragStartGlobalY = null;
+                        _dragStartAgendaHeight = null;
+                        SharedPreferences.getInstance().then(
+                          (prefs) =>
+                              prefs.setDouble(_agendaSplitKey, _agendaSplit),
+                        );
+                      },
+                      child: SizedBox(
+                        height: handleHeight,
+                        width: double.infinity,
+                        child: Center(
+                          child: Container(
+                            width: isTouchPlatform ? 48 : 36,
+                            height: isTouchPlatform ? 5 : 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade500,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(child: _buildBacklogPanel(backlog, l10n)),
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -603,6 +711,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       ..sort((a, b) => a.start!.compareTo(b.start!));
     final looseEntries = loose.map(AgendaEntry.loose).toList();
     final isEmpty = looseEntries.isEmpty && timedEntries.isEmpty;
+    final dayWeather = ref.watch(weatherForecastProvider).valueOrNull?[DateTime(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    )];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -625,6 +738,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   color: Colors.grey.shade700,
                 ),
               ),
+              if (dayWeather != null) ...[
+                const SizedBox(width: 10),
+                Icon(dayWeather.weatherCode.weatherIcon, size: 15, color: Colors.grey.shade600),
+                const SizedBox(width: 3),
+                Text(
+                  l10n.weatherTempHighLow(
+                    dayWeather.maxTempC.round(),
+                    dayWeather.minTempC.round(),
+                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
               const Spacer(),
               IconButton.filled(
                 tooltip: l10n.tooltipAddEvent,
@@ -777,27 +902,45 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         color: Colors.grey.shade700,
                       ),
                     ),
+                    if (!_showQuickAddField) ...[
+                      const Spacer(),
+                      IconButton.filled(
+                        tooltip: l10n.tooltipAddSomeday,
+                        icon: const Icon(Icons.add, size: 20),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () =>
+                            setState(() => _showQuickAddField = true),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: TextField(
-                  controller: _quickAddController,
-                  decoration: InputDecoration(
-                    hintText: l10n.addSomedayHint,
-                    isDense: true,
-                    border: const OutlineInputBorder(),
+              if (_showQuickAddField) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TextField(
+                    controller: _quickAddController,
+                    focusNode: _quickAddFocusNode,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: l10n.addSomedayHint,
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onSubmitted: (value) {
+                      final text = value.trim();
+                      if (text.isNotEmpty) {
+                        ref
+                            .read(eventsRepositoryProvider)
+                            .createQuickTask(text);
+                      }
+                      _quickAddController.clear();
+                      setState(() => _showQuickAddField = false);
+                    },
                   ),
-                  onSubmitted: (value) {
-                    final text = value.trim();
-                    if (text.isEmpty) return;
-                    ref.read(eventsRepositoryProvider).createQuickTask(text);
-                    _quickAddController.clear();
-                  },
                 ),
-              ),
-              const SizedBox(height: 4),
+                const SizedBox(height: 4),
+              ],
               Expanded(
                 child: backlog.isEmpty
                     ? Center(

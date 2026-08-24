@@ -14,9 +14,11 @@ import '../data/remote/api_exception.dart';
 import '../data/remote/auth_token_storage.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/events_repository.dart';
+import '../services/address_service.dart';
 import '../services/app_settings.dart';
 import '../services/launch_at_login.dart';
 import '../services/reminder_engine.dart';
+import '../services/weather_service.dart';
 import '../utils/calendar_grid.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -86,6 +88,24 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) => Setting
 /// sound). Persisted locally and loaded once at startup.
 final settingsControllerProvider = StateNotifierProvider<SettingsController, AppSettings>((ref) {
   return SettingsController(ref.watch(settingsRepositoryProvider));
+});
+
+final weatherServiceProvider = Provider<WeatherService>((ref) => WeatherService());
+
+final addressServiceProvider = Provider<AddressService>((ref) => AddressService());
+
+/// The signed-in device's forecast, keyed by local calendar date — null
+/// while no city is set in Settings. Re-fetches whenever the configured
+/// coordinates change; otherwise cached for the app's lifetime rather than
+/// re-hit on every rebuild, since a forecast doesn't meaningfully change
+/// minute to minute.
+final weatherForecastProvider = FutureProvider<Map<DateTime, DailyWeather>?>((ref) async {
+  final settings = ref.watch(settingsControllerProvider);
+  final lat = settings.weatherLat;
+  final lon = settings.weatherLon;
+  if (lat == null || lon == null) return null;
+
+  return ref.watch(weatherServiceProvider).fetchForecast(latitude: lat, longitude: lon);
 });
 
 /// Available audio input devices, for the mic picker in Settings — machines

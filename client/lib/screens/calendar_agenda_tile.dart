@@ -4,6 +4,7 @@ import '../data/local/app_database.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../utils/event_colors.dart';
 import '../utils/recurrence.dart';
+import 'event_draggable.dart';
 
 /// Normalizes a timed occurrence or a loose task into one shape so the day
 /// agenda can render and sort them together.
@@ -206,10 +207,7 @@ class AgendaTile extends StatelessWidget {
 
     if (!draggable) return content;
 
-    // A plain (not long-press) drag, matching the backlog chips — the inner
-    // InkWell still gets a clean tap when the pointer doesn't move far
-    // enough to count as a drag, so quick taps keep opening the edit form.
-    return Draggable<Event>(
+    return EventDraggable<Event>(
       data: dragData,
       feedback: Material(
         color: Colors.transparent,
